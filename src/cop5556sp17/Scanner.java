@@ -1,13 +1,25 @@
 package cop5556sp17;
 
 
+import javax.sound.sampled.Line;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 
 
 public class Scanner
 {
+    final ArrayList<Token> tokens;
+    final String chars;
+    int tokenNum;
+
+    HashMap<String, Kind> kinds;
+    HashMap<String, Kind> keyWordMap;
+    static ArrayList<Integer> newlines;
+
     /**
      * Kind enum
+     * Stores the types of tokens that are considered legal as an enumerable constant.
      */
     public static enum Kind
     {
@@ -75,24 +87,14 @@ public class Scanner
         }
     }
 
-    // Internal state representation
+    // Internal state representation for the scanner
+    // Useful for walking through comments
     private static enum State
     {
         START(0),
         INSIDE_COMMENT(0),
-        EXPECT_SLASH(0),
-        EXPECT_PIPE_OR_BARARROW(0),
-        EXPECT_BARARROW(0),
-        ILLEGAL_CHAR(0),
-        EXPECT_EQ(0),
-        EXPECT_BANG_EQ(0),
-        EXPECT_MAYBE_EQ_OR_MINUS(0),
-        EXPECT_MAYBE_EQ(0),
-        EXPECT_GT(0),
-        EXPECT_INT_LIT(0),
-        EXPECT_IDENT(0),
-        EXPECT_DIV_OR_COMMENT(0);
-
+        EXPECT_SLASH(0);
+        
         State(int start)
         {
             this.start = start;
@@ -146,6 +148,33 @@ public class Scanner
         {
             return "LinePos [line=" + line + ", posInLine=" + posInLine + "]";
         }
+
+        public static LinePos getLinePosFromIndex(int pos)
+        {
+            int low = 0, high = Scanner.newlines.size() - 1, mid = low + (high - low) / 2;
+            int row, col;
+            while(low < high)
+            {
+                mid = low + (high - low) / 2;
+                if(Scanner.newlines.get(mid) <= pos && Scanner.newlines.get(mid) >= pos)
+                {
+                    break;
+                }
+                else if(Scanner.newlines.get(mid) > pos && Scanner.newlines.get(mid) > pos)
+                {
+                    high = mid;
+                }
+                else if(Scanner.newlines.get(mid) < pos && Scanner.newlines.get(mid) < pos)
+                {
+                    low = mid;
+                }
+            }
+
+            row = mid;
+            col = Scanner.newlines.get(row) - pos;
+
+            return new LinePos(row, col);
+        }
     }
 
     public class Token
@@ -171,8 +200,7 @@ public class Scanner
         // Token
         LinePos getLinePos()
         {
-            // @TODO Implement this
-            return null;
+            return LinePos.getLinePosFromIndex(pos);
         }
 
         Token(Kind kind, int pos, int length)
@@ -200,8 +228,26 @@ public class Scanner
     Scanner(String chars)
     {
         this.chars = chars;
-        tokens = new ArrayList<Token>();
-        tokenNum = 0;
+        this.tokens = new ArrayList<Token>();
+        this.tokenNum = 0;
+
+        this.kinds = new HashMap<>();
+        this.keyWordMap = new HashMap<>();
+        this.newlines = new ArrayList<>();
+
+        for(Kind kind : Kind.values())
+        {
+            if(!kind.getText().isEmpty())
+            {
+                kinds.put(kind.getText(), kind);
+
+                // All keywords
+                if(kind.name().contains("KW_") || kind.name().contains("OP_") )
+                {
+                    keyWordMap.put(kind.getText(), kind);
+                }
+            }
+        }
     }
 
     /**
@@ -214,236 +260,278 @@ public class Scanner
      */
     public Scanner scan() throws IllegalCharException, IllegalNumberException
     {
-        int pos;
-        char ch;
+        int pos, j;
+        char ch, _ch;
         State state = State.START;
-        ArrayList<Integer> newlines = new ArrayList<Integer>();
 
         for(pos = 0; pos < chars.length(); ++pos)
         {
             ch = chars.charAt(pos);
-            if( !(Character.isWhitespace(ch) || ch == '\n') )
+            int start;
+            if(!Character.isWhitespace(ch) || ch == '\n')
             {
                 switch(state)
                 {
-                    case ILLEGAL_CHAR:
-                        throw new IllegalCharException(String.format(
-                            "Found illegal character %c at index %d",
-                            chars.charAt(pos - 1), pos - 1
-                        ));
                     case START:
                         switch(ch)
                         {
                             case '\n':
-                                newlines.add(pos);
+                                this.newlines.add(pos);
                                 break;
                             case '0':
-                                tokens.add(new Token(Kind.INT_LIT, pos , 1));
-                                state = State.START;
-                                break;
-                            case '/':
-                                state = State.EXPECT_DIV_OR_COMMENT;
-                                state.start = pos;
-                                break;
-                            case '|':
-                                state = State.EXPECT_PIPE_OR_BARARROW;
-                                state.start = pos;
+                                tokens.add(new Token(Kind.INT_LIT, pos, 1));
                                 break;
                             case '&':
-                                tokens.add(new Token(Kind.AND, pos, 1));
-                                state = State.START;
-                                break;
-                            case '=':
-                                state = State.EXPECT_EQ;
-                                state.start = pos;
-                                break;
-                            case '!':
-                                state = State.EXPECT_BANG_EQ;
-                                state.start = pos;
-                                break;
-                            case '<':
-                                state = State.EXPECT_MAYBE_EQ_OR_MINUS;
-                                state.start = pos;
-                                break;
-                            case '>':
-                                state = State.EXPECT_MAYBE_EQ;
-                                state.start = pos;
-                                break;
                             case '+':
-                                tokens.add(new Token(Kind.PLUS, pos, 1));
-                                state = State.START;
-                                break;
-                            case '-':
-                                state = State.EXPECT_GT;
-                                state.start = pos;
-                                break;
                             case '*':
-                                tokens.add(new Token(Kind.TIMES, pos, 1));
-                                state = State.START;
-                                break;
                             case '%':
-                                tokens.add(new Token(Kind.MOD, pos , 1));
-                                state = State.START;
-                                break;
                             case ';':
-                                tokens.add(new Token(Kind.SEMI, pos , 1));
-                                state = State.START;
-                                break;
                             case ',':
-                                tokens.add(new Token(Kind.COMMA, pos , 1));
-                                state = State.START;
-                                break;
                             case '(':
-                                tokens.add(new Token(Kind.LPAREN, pos , 1));
-                                state = State.START;
-                                break;
                             case ')':
-                                tokens.add(new Token(Kind.RPAREN, pos , 1));
-                                state = State.START;
-                                break;
                             case '{':
-                                tokens.add(new Token(Kind.LBRACE, pos , 1));
-                                state = State.START;
-                                break;
                             case '}':
-                                tokens.add(new Token(Kind.RBRACE, pos , 1));
-                                state = State.START;
+                                tokens.add(new Token(kinds.get(Character.toString(ch)), pos, 1));
                                 break;
+                            //<editor-fold desc="case !:">
+                            case '!':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '=')
+                                    {
+                                        tokens.add(new Token(Kind.NOTEQUAL, pos, 2));
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.NOT, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.NOT, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case =:">
+                            case '=':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '=')
+                                    {
+                                        tokens.add(new Token(Kind.EQUAL, pos, 2));
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        throw new IllegalCharException(
+                                            String.format("Illegal character %c at index %s", chars.charAt(pos), pos)
+                                        );
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    throw new IllegalCharException(
+                                        String.format("Illegal character %c at index %d", chars.charAt(pos), pos));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case <:">
+                            case '<':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '=')
+                                    {
+                                        tokens.add(new Token(Kind.LE, pos, 2));
+                                        ++pos;
+                                    }
+                                    else if(_ch == '-')
+                                    {
+                                        tokens.add(new Token(Kind.ASSIGN, pos, 2));
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.LT, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.LT, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case >:">
+                            case '>':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '=')
+                                    {
+                                        tokens.add(new Token(Kind.GE, pos, 2));
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.GT, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.GT, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case -:">
+                            case '-':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '>')
+                                    {
+                                        tokens.add(new Token(Kind.ARROW, pos, 2));
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.MINUS, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.MINUS, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case |:">
+                            case '|':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '-')
+                                    {
+                                        try
+                                        {
+                                            _ch = chars.charAt(pos + 2);
+                                            if(_ch == '>')
+                                            {
+                                                tokens.add(new Token(Kind.BARARROW, pos, 3));
+                                                pos = pos + 2;
+                                            }
+                                            else
+                                            {
+                                                tokens.add(new Token(Kind.OR, pos, 1));
+                                                tokens.add(new Token(Kind.MINUS, pos + 1, 1));
+                                                ++pos;
+                                            }
+                                        }
+                                        catch(StringIndexOutOfBoundsException ex)
+                                        {
+                                            tokens.add(new Token(Kind.OR, pos, 1));
+                                            tokens.add(new Token(Kind.MINUS, pos + 1, 1));
+                                            ++pos;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.OR, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.OR, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="case /:">
+                            case '/':
+                                try
+                                {
+                                    _ch = chars.charAt(pos + 1);
+                                    if(_ch == '*')
+                                    {
+                                        state = State.INSIDE_COMMENT;
+                                        state.start = pos;
+                                        ++pos;
+                                    }
+                                    else
+                                    {
+                                        tokens.add(new Token(Kind.DIV, pos, 1));
+                                    }
+                                }
+                                catch(StringIndexOutOfBoundsException ex)
+                                {
+                                    tokens.add(new Token(Kind.DIV, pos, 1));
+                                }
+                                //</editor-fold>
+                                break;
+                            //<editor-fold desc="INT_LIT, IDENT">
                             default:
-                                /*
-                                 * Set the state and force a rewind to correctly
-                                 * read informationWe do this only for ints and
-                                 * idents to avoid off by 1 errors.
-                                 * The remainder of our tokens are
-                                 * comparatively trivial to handle
-                                 */
                                 if(isDigit(ch))
                                 {
-                                    state = State.EXPECT_INT_LIT;
-                                    pos = pos - 1;
+                                    j = pos;
+                                    try
+                                    {
+                                        while(isDigit(chars.charAt(j)))
+                                        {
+                                            ++j;
+                                        }
+                                        int $ = Integer.parseInt(chars.substring(pos, j));
+                                        tokens.add(new Token(Kind.INT_LIT, pos, j - pos));
+                                        pos = j - 1;
+                                    }
+                                    catch(NumberFormatException ex)
+                                    {
+                                        throw new IllegalNumberException(
+                                            "Found illegal integer beginning at index " + pos
+                                        );
+                                    }
+                                    catch(StringIndexOutOfBoundsException ex)
+                                    {
+                                        try
+                                        {
+                                            int $ = Integer.parseInt(chars.substring(pos, j));
+                                        }
+                                        catch(NumberFormatException _ex)
+                                        {
+                                            throw new IllegalNumberException(
+                                                "Found illegal integer beginning at index " + pos
+                                            );
+                                        }
+                                        tokens.add(new Token(Kind.INT_LIT, pos, j - pos));
+                                        pos = j - 1;
+                                    }
                                 }
                                 else if(isIdentStart(ch))
                                 {
-                                    state = State.EXPECT_IDENT;
-                                    pos = pos - 1;
+                                    j = pos;
+                                    try
+                                    {
+                                        while(isIdentPart(chars.charAt(j)))
+                                        {
+                                            ++j;
+                                        }
+                                        tokens.add(new Token(Kind.IDENT, pos, j - pos));
+                                        pos = j - 1;
+                                    }
+                                    catch(StringIndexOutOfBoundsException ex)
+                                    {
+                                        tokens.add(new Token(Kind.IDENT, pos, j - pos));
+                                        pos = j - 1;
+                                    }
                                 }
-                                else
-                                {
-                                    state = State.ILLEGAL_CHAR;
-                                    pos = pos - 1;
-                                }
+                                //</editor-fold>
                                 break;
                         }
                         break;
-                    case EXPECT_INT_LIT:
-                        int j = pos;
-                        char _ch = chars.charAt(j);
-                        /*
-                         * Keep reading while we get numeric digits to extend
-                         * our token to the longest possible length
-                         */
-                        while(isDigit(_ch) && j < chars.length() - pos - 1)
-                        {
-                            ++j;
-                            _ch = chars.charAt(j);
-                        }
-                        tokens.add(new Token(Kind.INT_LIT, pos, j));
-                        state = State.START;
-                        pos = pos + j;
-                        break;
-                    case EXPECT_IDENT:
-                        // Apparently variables defined in another case
-                        // Are in the scope of this case too...
-                        j = pos;
-                        _ch = chars.charAt(j);
-                        /*
-                         * IdentPart is a superset of identstart, safe to use
-                         * this check here because if the DFA has reached this
-                         * state it means we've encounted an IDENT_START and
-                         * rewinded.
-                         */
-                        while(isIdentPart(_ch) && j < chars.length() - pos)
-                        {
-                            _ch = chars.charAt(j);
-                            ++j;
-                        }
-
-                        String id = chars.substring(pos, pos + j);
-
-                        if(isKeywordOrReserved(id))
-                        {
-                            tokens.add(new Token(Kind.valueOf(id), pos, j));
-                        }
-                        else
-                        {
-                            tokens.add(new Token(Kind.IDENT, pos, j));
-                        }
-                        state = State.START;
-                        pos = pos + j;
-                        break;
-                    case EXPECT_GT:
-                        switch(ch)
-                        {
-                            case '>':
-                                tokens.add(new Token(Kind.ARROW, state.start, 2));
-                                state = State.START;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.MINUS, state.start, 1));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-                    case EXPECT_MAYBE_EQ:
-                        switch(ch)
-                        {
-                            case '=':
-                                tokens.add(new Token(Kind.GE, state.start, 2));
-                                state = State.START;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.GT, state.start, 1));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-                    case EXPECT_MAYBE_EQ_OR_MINUS:
-                        switch(ch)
-                        {
-                            case '=':
-                                tokens.add(new Token(Kind.LE, state.start, 2));
-                                state = State.START;
-                                break;
-                            case '-':
-                                tokens.add(new Token(Kind.ASSIGN, state.start, 2));
-                                state = State.START;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.LT, state.start, 1));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-                    case EXPECT_DIV_OR_COMMENT:
-                        switch(ch)
-                        {
-                            case '*':
-                                state = State.INSIDE_COMMENT;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.DIV, state.start, 1));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
+                    //<editor-fold desc="case INSIDE_COMMENT">
                     case INSIDE_COMMENT:
-                        if(pos == (chars.length() - 1))
+                        if(pos + 1 == chars.length())
                         {
-                            throw new IllegalCharException("Expected matching '*/', but found end of source file");
+                            throw new IllegalCharException("End of source reached before comment close was seen");
                         }
                         switch(ch)
                         {
@@ -452,79 +540,32 @@ public class Scanner
                                 break;
                             default:
                                 state = State.INSIDE_COMMENT;
+                                break;
                         }
+                        //</editor-fold>
                         break;
+                    //<editor-fold desc="case EXPECT_SLASH">
                     case EXPECT_SLASH:
+                        if(pos + 1 > chars.length())
+                        {
+                            throw new IllegalCharException("End of source reached before comment close was seen");
+                        }
                         switch(ch)
                         {
                             case '*':
                                 state = State.EXPECT_SLASH;
                                 break;
                             case '/':
-                                // Directly jump back to start state since there
-                                // is no 'accept' state for comments
                                 state = State.START;
                                 break;
                             default:
                                 state = State.INSIDE_COMMENT;
                                 break;
                         }
+                        //</editor-fold>
                         break;
-                    case EXPECT_PIPE_OR_BARARROW:
-                        switch(ch)
-                        {
-                            case '-':
-                                state = State.EXPECT_BARARROW;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.OR, state.start, 1));
-                                pos = pos - 1;
-                                state = State.START;
-                                break;
-                        }
+                    default:
                         break;
-                    case EXPECT_BARARROW:
-                        switch(ch)
-                        {
-                            case '>':
-                                tokens.add(new Token(Kind.BARARROW, pos - 2, 3));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                            default:
-                                state = State.ILLEGAL_CHAR;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-                    case EXPECT_EQ:
-                        switch(ch)
-                        {
-                            case '=':
-                                tokens.add(new Token(Kind.EQUAL, state.start, 2));
-                                state = State.START;
-                                break;
-                            default:
-                                state = State.ILLEGAL_CHAR;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-                    case EXPECT_BANG_EQ:
-                        switch(ch)
-                        {
-                            case '=':
-                                tokens.add(new Token(Kind.NOTEQUAL, pos - 1, 2));
-                                state = State.START;
-                                break;
-                            default:
-                                tokens.add(new Token(Kind.NOT, pos - 1, 1));
-                                state = State.START;
-                                pos = pos - 1;
-                                break;
-                        }
-                        break;
-
                 }
             }
         }
@@ -533,17 +574,13 @@ public class Scanner
         return this;
     }
 
-    final ArrayList<Token> tokens;
-    final String chars;
-    int tokenNum;
-
     /**
      * Return the next token in the token list and update the state so that the
      * next call will return the Token..
      */
     public Token nextToken()
     {
-        if (tokenNum >= tokens.size())
+        if(tokenNum >= tokens.size())
             return null;
         return tokens.get(tokenNum++);
     }
@@ -554,7 +591,7 @@ public class Scanner
      */
     public Token peek()
     {
-        if (tokenNum >= tokens.size())
+        if(tokenNum >= tokens.size())
             return null;
         return tokens.get(tokenNum + 1);
     }
@@ -565,7 +602,7 @@ public class Scanner
      * Line numbers start counting at 0
      *
      * @param t
-     * @return
+     * @return line and column numbers corresponding to the token's start
      */
     public LinePos getLinePos(Token t)
     {
@@ -574,6 +611,7 @@ public class Scanner
 
     /**
      * Checks whether the argument is a digit
+     *
      * @param ch character to be tested
      * @return True if character is a digit literal, false otherwise
      */
@@ -584,6 +622,7 @@ public class Scanner
 
     /**
      * Checks if the character is a valid starting character for an identifier
+     *
      * @param ch character to be tested
      * @return true if valid identifier start, false otherwise
      */
@@ -597,6 +636,7 @@ public class Scanner
 
     /**
      * Checks if the character is a valid character for an identifier part
+     *
      * @param ch character to be tested
      * @return true if character is a valid identifier part, false otherwise
      */
@@ -607,20 +647,13 @@ public class Scanner
 
     /**
      * Checks if the given string is a scanner keyword or not
+     *
      * @param s String to be checked for keyword / reserved usage
      * @return true if {@code s} is a keyword or is reserved, false otherwise
      */
     private boolean isKeywordOrReserved(String s)
     {
-        Kind k;
-        try
-        {
-            k = Kind.valueOf(s);
-        } catch(IllegalArgumentException ex)
-        {
-            return false;
-        }
-        return true;
+        return keyWordMap.get(s) != null;
     }
 
 }

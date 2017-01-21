@@ -34,7 +34,7 @@ public class ScannerTest
     public void testWellFormedComments() throws IllegalCharException, IllegalNumberException
     {
         // This program should be read as equivalent to an empty string
-        String input = "/* This is a comments */\n/* Followed by another comment */";
+        String input = "/* This is a comment */\n/* Followed by another comment */";
         Scanner scanner = new Scanner(input);
         scanner.scan();
         Scanner.Token token = scanner.nextToken();
@@ -235,7 +235,7 @@ public class ScannerTest
     public void testPipeConcat() throws IllegalCharException, IllegalNumberException
     {
 
-        String input = "||||||";
+        String input = "|||||";
 
         Scanner scanner = new Scanner(input);
         scanner.scan();
@@ -303,7 +303,7 @@ public class ScannerTest
         Scanner scanner = new Scanner(input);
         scanner.scan();
 
-        Scanner.Token token = scanner.nextToken();
+        Scanner.Token token;
         String text = Kind.EQUAL.text;
 
         int[] position = {0, 3, 8};
