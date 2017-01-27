@@ -1,17 +1,16 @@
 package cop5556sp17;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-
+import cop5556sp17.Scanner.IllegalCharException;
+import cop5556sp17.Scanner.IllegalNumberException;
+import cop5556sp17.Scanner.Kind;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import cop5556sp17.Scanner.IllegalCharException;
-import cop5556sp17.Scanner.IllegalNumberException;
-import cop5556sp17.Scanner.Kind;
+import java.util.HashSet;
 
-import java.util.Arrays;
+import static cop5556sp17.Scanner.Kind.*;
+import static org.junit.Assert.assertEquals;
 
 
 public class ScannerTest
@@ -27,18 +26,18 @@ public class ScannerTest
         Scanner scanner = new Scanner(input);
         scanner.scan();
         Scanner.Token token = scanner.nextToken();
-        assertEquals(Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
     public void testWellFormedComments() throws IllegalCharException, IllegalNumberException
     {
         // This program should be read as equivalent to an empty string
-        String input = "/* This is a comment */\n/* Followed by another comment */";
+        String input = "/* This is a comment */\n/* Followed *\n by \n* another \n* comment *\n**********************/";
         Scanner scanner = new Scanner(input);
         scanner.scan();
         Scanner.Token token = scanner.nextToken();
-        assertEquals(Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -53,16 +52,16 @@ public class ScannerTest
         tokens[2] = scanner.nextToken();
         tokens[3] = scanner.nextToken();
 
-        assertEquals(Kind.IDENT, tokens[0].kind);
+        assertEquals(IDENT, tokens[0].kind);
         assertEquals("IllegalCharException", tokens[0].getText());
 
-        assertEquals(Kind.IDENT, tokens[1].kind);
+        assertEquals(IDENT, tokens[1].kind);
         assertEquals("here", tokens[1].getText());
 
-        assertEquals(Kind.TIMES, tokens[2].kind);
+        assertEquals(TIMES, tokens[2].kind);
         assertEquals("*", tokens[2].getText());
 
-        assertEquals(Kind.DIV, tokens[3].kind);
+        assertEquals(DIV, tokens[3].kind);
         assertEquals("/", tokens[3].getText());
     }
 
@@ -85,20 +84,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.SEMI.text;
+        String text = SEMI.text;
 
         for(int i = 0; i < 3; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.SEMI, token.kind);
+            assertEquals(SEMI, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -111,20 +110,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.COMMA.text;
+        String text = COMMA.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.COMMA, token.kind);
+            assertEquals(COMMA, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -137,20 +136,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.LPAREN.text;
+        String text = LPAREN.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.LPAREN, token.kind);
+            assertEquals(LPAREN, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -163,20 +162,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.RPAREN.text;
+        String text = RPAREN.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.RPAREN, token.kind);
+            assertEquals(RPAREN, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -189,20 +188,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.LBRACE.text;
+        String text = LBRACE.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.LBRACE, token.kind);
+            assertEquals(LBRACE, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -215,20 +214,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.RBRACE.text;
+        String text = RBRACE.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.RBRACE, token.kind);
+            assertEquals(RBRACE, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -241,20 +240,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.OR.text;
+        String text = OR.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.OR, token.kind);
+            assertEquals(OR, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -267,20 +266,20 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.AND.text;
+        String text = AND.text;
 
         for(int i = 0; i < 5; ++i)
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.AND, token.kind);
+            assertEquals(AND, token.kind);
             assertEquals(i, token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -304,7 +303,7 @@ public class ScannerTest
         scanner.scan();
 
         Scanner.Token token;
-        String text = Kind.EQUAL.text;
+        String text = EQUAL.text;
 
         int[] position = {0, 3, 8};
 
@@ -312,14 +311,14 @@ public class ScannerTest
         {
             token = scanner.nextToken();
 
-            assertEquals(Kind.EQUAL, token.kind);
+            assertEquals(EQUAL, token.kind);
             assertEquals(position[i], token.pos);
             assertEquals(text, token.getText());
             assertEquals(text.length(), token.length);
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -331,7 +330,7 @@ public class ScannerTest
         Scanner scanner = new Scanner(input);
         scanner.scan();
 
-        Kind[] kind = {Kind.GT, Kind.LT, Kind.GE, Kind.LE, Kind.NOTEQUAL, Kind.EQUAL};
+        Kind[] kind = {GT, LT, GE, LE, NOTEQUAL, EQUAL};
         int[] length = {1, 1, 2, 2, 2, 2};
         int[] position = {0, 1, 2, 4, 6, 8};
 
@@ -348,7 +347,7 @@ public class ScannerTest
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -360,7 +359,7 @@ public class ScannerTest
         Scanner scanner = new Scanner(input);
         scanner.scan();
 
-        Kind[] kind = {Kind.PLUS, Kind.MINUS, Kind.TIMES, Kind.DIV, Kind.MOD};
+        Kind[] kind = {PLUS, MINUS, TIMES, DIV, MOD};
         int[] position = {0, 1, 2, 3, 4};
 
         Scanner.Token token;
@@ -376,7 +375,7 @@ public class ScannerTest
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -388,7 +387,7 @@ public class ScannerTest
         Scanner scanner = new Scanner(input);
         scanner.scan();
 
-        Kind[] kind = {Kind.ARROW, Kind.ASSIGN, Kind.BARARROW};
+        Kind[] kind = {ARROW, ASSIGN, BARARROW};
         int[] position = {0, 2, 4};
         int[] length = {2, 2, 3};
 
@@ -405,7 +404,7 @@ public class ScannerTest
         }
         // Check that EOF was inserted
         token = scanner.nextToken();
-        assertEquals(Scanner.Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     /**
@@ -435,12 +434,12 @@ public class ScannerTest
         Scanner scanner = new Scanner(zero);
         scanner.scan();
         Scanner.Token token = scanner.nextToken();
-        assertEquals(token.kind, Kind.INT_LIT);
+        assertEquals(token.kind, INT_LIT);
         assertEquals("0", token.getText());
 
         // Confirm presence of an EOF token
         token = scanner.nextToken();
-        assertEquals(Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -453,13 +452,13 @@ public class ScannerTest
 
         Scanner.Token token = scanner.nextToken();
 
-        assertEquals(Kind.INT_LIT, token.kind);
+        assertEquals(INT_LIT, token.kind);
         assertEquals(vanillaInt, token.getText());
         assertEquals(10, token.length);
 
         token = scanner.nextToken();
 
-        assertEquals(Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
     @Test
@@ -472,31 +471,315 @@ public class ScannerTest
 
         Scanner.Token token = scanner.nextToken();
 
-        assertEquals(Kind.INT_LIT, token.kind);
+        assertEquals(INT_LIT, token.kind);
         assertEquals("0", token.getText());
         assertEquals(1, token.length);
 
         token = scanner.nextToken();
 
-        assertEquals(Kind.INT_LIT, token.kind);
+        assertEquals(INT_LIT, token.kind);
         assertEquals("12345678", token.getText());
         assertEquals(8, token.length);
 
         token = scanner.nextToken();
 
-        assertEquals(Kind.TIMES, token.kind);
+        assertEquals(TIMES, token.kind);
         assertEquals("*", token.getText());
         assertEquals(1, token.length);
 
         token = scanner.nextToken();
 
-        assertEquals(Kind.INT_LIT, token.kind);
+        assertEquals(INT_LIT, token.kind);
         assertEquals("3", token.getText());
         assertEquals(1, token.length);
 
         token = scanner.nextToken();
 
-        assertEquals(Kind.EOF, token.kind);
+        assertEquals(EOF, token.kind);
     }
 
+    @Test
+    public void testWhiteSpaceWithSingleCharTokens() throws IllegalCharException, IllegalNumberException
+    {
+        String input = " \n\t; ,   (\t\t)\n{\n }\t\n \t \n + \n*\n%\n&\n\n\n\n";
+        Scanner.Kind[] types = {SEMI, COMMA, LPAREN, RPAREN, LBRACE, RBRACE, PLUS, TIMES, MOD, AND};
+
+        Scanner sc = new Scanner(input);
+        Scanner.Token token;
+        sc.scan();
+
+        for(Kind type : types)
+        {
+            token = sc.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+        }
+
+        token = sc.nextToken();
+        assertEquals(EOF, token.kind);
+    }
+
+    @Test
+    public void testUnknownCharacters() throws IllegalCharException, IllegalNumberException
+    {
+        // All of these characters are not part of the specification and are handled with an IllegalCharException
+        String[] input = {"\\", ":", "\"", "'", "#", "@", "^", "[", "]", "?"};
+        Scanner scanner;
+
+        for(String anInput : input)
+        {
+            scanner = new Scanner(anInput);
+            thrown.expect(IllegalCharException.class);
+            scanner.scan();
+        }
+    }
+
+    @Test
+    public void testGEWithEquals() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as  ==, >=, =
+        String input = "==>==";
+        Scanner s = new Scanner(input);
+        thrown.expect(IllegalCharException.class);
+        s.scan();
+    }
+
+    @Test
+    public void testLEWithEquals() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as  ==, <=, =
+        String input = "==<==";
+        Scanner s = new Scanner(input);
+        thrown.expect(IllegalCharException.class);
+        s.scan();
+    }
+
+    @Test
+    public void testNotEqualWithEquals() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as  ==, !=, =
+        String input = "==!==";
+        Scanner s = new Scanner(input);
+        thrown.expect(IllegalCharException.class);
+        s.scan();
+    }
+
+    @Test
+    public void testMixedSymbolsForArrows() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as |, -, |->
+        String input = "|-|->";
+        Scanner s = new Scanner(input);
+        Scanner.Kind[] types = {OR, MINUS, BARARROW};
+
+        s.scan();
+        Scanner.Token token;
+        for(Kind type : types)
+        {
+            token = s.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+        }
+
+        token = s.nextToken();
+        assertEquals(EOF, token.kind);
+    }
+
+    @Test
+    public void testMixedSymbolsForLEAndGT() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as <=, >
+        String input = "<=>";
+        Scanner s = new Scanner(input);
+        Scanner.Kind[] types = {LE, GT};
+
+        s.scan();
+        Scanner.Token token;
+        for(Kind type : types)
+        {
+            token = s.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+        }
+
+        token = s.nextToken();
+        assertEquals(EOF, token.kind);
+    }
+
+    @Test
+    public void testMixedSymbolsForGEAndLT() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as <=, >
+        String input = ">=<";
+        Scanner s = new Scanner(input);
+        Scanner.Kind[] types = {GE, LT};
+
+        s.scan();
+        Scanner.Token token;
+        for(Kind type : types)
+        {
+            token = s.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+        }
+
+        token = s.nextToken();
+        assertEquals(EOF, token.kind);
+    }
+
+    @Test
+    public void testWhiteSpaceAsSeparatorForIllegals() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as <, =
+        String input = "< = =";
+        Scanner s = new Scanner(input);
+        thrown.expect(IllegalCharException.class);
+        s.scan();
+    }
+
+    @Test
+    public void testWhiteSpaceAsSeparatorForLegals() throws IllegalCharException, IllegalNumberException
+    {
+        // Input should be seen as <, ==, >=, !, ==, |, -, >, ->, |->, /, *, *, *, /
+        String input = "< == >= ! != | - > -> |-> / ** \n * /";
+        Scanner.Kind[] types = {
+            LT, EQUAL, GE, NOT, NOTEQUAL, OR, MINUS, GT, ARROW, BARARROW, DIV, TIMES, TIMES, TIMES, DIV
+        };
+        Scanner s = new Scanner(input);
+
+        s.scan();
+        Scanner.Token token;
+
+        for(Kind type : types)
+        {
+            token = s.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+        }
+
+        token = s.nextToken();
+        assertEquals(EOF, token.kind);
+    }
+
+    @Test
+    public void testKeywords() throws IllegalCharException, IllegalNumberException
+    {
+        String input = "integer \n boolean \n image \n url \n file \n frame \n while \n if \n sleep \n " +
+            "screenheight \n screenwidth gray \n convolve \n blur \n scale width \n height xloc \n yloc " +
+            "\n hide \n show \n move";
+        Scanner.Kind[] types = {
+            KW_INTEGER, KW_BOOLEAN, KW_IMAGE, KW_URL, KW_FILE, KW_FRAME, KW_WHILE, KW_IF, OP_SLEEP, KW_SCREENHEIGHT,
+            KW_SCREENWIDTH, OP_GRAY, OP_CONVOLVE, OP_BLUR, KW_SCALE, OP_WIDTH, OP_HEIGHT, KW_XLOC, KW_YLOC, KW_HIDE,
+            KW_SHOW, KW_MOVE
+        };
+        HashSet<Scanner.Kind> keywordTypes = new HashSet<>((new Scanner("")).keyWordMap.values());
+
+        Scanner scanner = new Scanner(input);
+
+        scanner.scan();
+        Scanner.Token token;
+
+        for(Kind type : types)
+        {
+            token = scanner.nextToken();
+
+            assertEquals(type, token.kind);
+            assertEquals(type.getText(), token.getText());
+            assertEquals(type.getText().length(), token.length);
+
+            assertEquals(true, keywordTypes.contains(token.kind));
+        }
+
+        token = scanner.nextToken();
+        assertEquals(EOF, token.kind);
+
+    }
+
+    @Test
+    public void testIdentsWithKeywords() throws IllegalCharException, IllegalNumberException
+    {
+        String input = "integer \n booleans \n images \n url \n file \n frame \n while \n if \n sleep \n " +
+            "screenheight \n screenwidth gray \n convolve \n blur \n scale width \n height xlocsz \n yloc " +
+            "\n hide \n show \n moves";
+        Scanner.Kind[] types = {
+            KW_INTEGER, IDENT, IDENT, KW_URL, KW_FILE, KW_FRAME, KW_WHILE, KW_IF, OP_SLEEP, KW_SCREENHEIGHT,
+            KW_SCREENWIDTH, OP_GRAY, OP_CONVOLVE, OP_BLUR, KW_SCALE, OP_WIDTH, OP_HEIGHT, IDENT, KW_YLOC, KW_HIDE,
+            KW_SHOW, IDENT
+        };
+
+        Scanner scanner = new Scanner(input);
+
+        scanner.scan();
+        Scanner.Token token;
+
+        for(Kind type : types)
+        {
+            token = scanner.nextToken();
+            assertEquals(type, token.kind);
+        }
+
+        token = scanner.nextToken();
+        assertEquals(EOF, token.kind);
+
+    }
+
+    @Test
+    public void testIntegersWithIdents() throws IllegalCharException, IllegalNumberException
+    {
+        String input = "abc12301234 012345";
+        Scanner.Kind[] types = {IDENT, INT_LIT, INT_LIT};
+
+        Scanner scanner = new Scanner(input);
+
+        scanner.scan();
+        Scanner.Token token;
+
+        for(Kind type : types)
+        {
+            token = scanner.nextToken();
+            assertEquals(type, token.kind);
+        }
+
+        token = scanner.nextToken();
+        assertEquals(EOF, token.kind);
+
+    }
+    @Test
+    public void testLinePos() throws IllegalCharException, IllegalNumberException
+    {
+        // Tokens at (row, column) (0,0), (1,1), (2,2), (3,4), (4,8)
+        String input = "*\n\t*\n\t\t*\n\t\t\t\t*\n\t\t\t\t\t\t\t\t*\n";
+        Scanner.LinePos[] linepos = {
+            new Scanner.LinePos(0, 0),
+            new Scanner.LinePos(1, 1),
+            new Scanner.LinePos(2, 2),
+            new Scanner.LinePos(3, 4),
+            new Scanner.LinePos(4, 8)
+        };
+
+        Scanner scanner = new Scanner(input);
+
+        scanner.scan();
+        Scanner.Token token;
+
+        for(Scanner.LinePos linepo : linepos)
+        {
+            token = scanner.nextToken();
+            assertEquals(TIMES, token.kind);
+            assertEquals(linepo, token.getLinePos());
+        }
+
+        token = scanner.nextToken();
+        assertEquals(EOF, token.kind);
+    }
 }

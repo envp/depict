@@ -1,21 +1,21 @@
 package cop5556sp17;
 
 
-import javax.sound.sampled.Line;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 
 
 public class Scanner
 {
+    // @TODO Find better way to record Exception LinePos besides using a dummy 0 length EOF token (search code)
     final ArrayList<Token> tokens;
     final String chars;
     int tokenNum;
 
     HashMap<String, Kind> kinds;
     HashMap<String, Kind> keyWordMap;
-    static ArrayList<Integer> newlines;
+    static ArrayList<Integer> newLines;
 
     /**
      * Kind enum
@@ -149,31 +149,27 @@ public class Scanner
             return "LinePos [line=" + line + ", posInLine=" + posInLine + "]";
         }
 
-        public static LinePos getLinePosFromIndex(int pos)
+        @Override
+        public boolean equals(Object other)
         {
-            int low = 0, high = Scanner.newlines.size() - 1, mid = low + (high - low) / 2;
-            int row, col;
-            while(low < high)
+            if(other == null)
             {
-                mid = low + (high - low) / 2;
-                if(Scanner.newlines.get(mid) <= pos && Scanner.newlines.get(mid) >= pos)
-                {
-                    break;
-                }
-                else if(Scanner.newlines.get(mid) > pos && Scanner.newlines.get(mid) > pos)
-                {
-                    high = mid;
-                }
-                else if(Scanner.newlines.get(mid) < pos && Scanner.newlines.get(mid) < pos)
-                {
-                    low = mid;
-                }
+                return false;
             }
 
-            row = mid;
-            col = Scanner.newlines.get(row) - pos;
+            if(this == other)
+            {
+                return true;
+            }
 
-            return new LinePos(row, col);
+            if(other.getClass() != this.getClass())
+            {
+                return false;
+            }
+
+            LinePos _other = (LinePos) other;
+
+            return (_other.line == line) && (_other.posInLine == posInLine);
         }
     }
 
@@ -200,7 +196,22 @@ public class Scanner
         // Token
         LinePos getLinePos()
         {
-            return LinePos.getLinePosFromIndex(pos);
+            // newLines contains 0-offsets of all newLines in the source file
+            // We want the index of the one that
+            int line = 0, col = 0;
+
+            line = Collections.binarySearch(Scanner.newLines, this.pos);
+            line = line < 0 ? (-line - 1) : line;
+            if(line == 0)
+            {
+                col = this.pos;
+            }
+            else if(line > 0)
+            {
+                col = this.pos - 1 - Scanner.newLines.get(line - 1);
+            }
+
+            return new LinePos(line, col);
         }
 
         Token(Kind kind, int pos, int length)
@@ -233,7 +244,7 @@ public class Scanner
 
         this.kinds = new HashMap<>();
         this.keyWordMap = new HashMap<>();
-        this.newlines = new ArrayList<>();
+        newLines = new ArrayList<>();
 
         for(Kind kind : Kind.values())
         {
@@ -276,7 +287,7 @@ public class Scanner
                         switch(ch)
                         {
                             case '\n':
-                                this.newlines.add(pos);
+                                newLines.add(pos);
                                 break;
                             case '0':
                                 tokens.add(new Token(Kind.INT_LIT, pos, 1));
@@ -327,14 +338,19 @@ public class Scanner
                                     else
                                     {
                                         throw new IllegalCharException(
-                                            String.format("Illegal character %c at index %s", chars.charAt(pos), pos)
+                                            String.format("Illegal character %c at index %s",
+                                                  chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
+                                            )
                                         );
                                     }
                                 }
                                 catch(StringIndexOutOfBoundsException ex)
                                 {
                                     throw new IllegalCharException(
-                                        String.format("Illegal character %c at index %d", chars.charAt(pos), pos));
+                                        String.format("Illegal character %c at index %d",
+                                              chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
+                                        )
+                                    );
                                 }
                                 //</editor-fold>
                                 break;
@@ -486,7 +502,8 @@ public class Scanner
                                     catch(NumberFormatException ex)
                                     {
                                         throw new IllegalNumberException(
-                                            "Found illegal integer beginning at index " + pos
+                                            "Found illegal integer beginning at " +
+                                                new Token(Kind.EOF, pos, 0).getLinePos()
                                         );
                                     }
                                     catch(StringIndexOutOfBoundsException ex)
@@ -498,7 +515,8 @@ public class Scanner
                                         catch(NumberFormatException _ex)
                                         {
                                             throw new IllegalNumberException(
-                                                "Found illegal integer beginning at index " + pos
+                                                "Found illegal integer beginning at " +
+                                                    new Token(Kind.EOF, pos, 0).getLinePos()
                                             );
                                         }
                                         tokens.add(new Token(Kind.INT_LIT, pos, j - pos));
@@ -514,14 +532,34 @@ public class Scanner
                                         {
                                             ++j;
                                         }
-                                        tokens.add(new Token(Kind.IDENT, pos, j - pos));
+                                        if(isKeywordOrReserved(chars.substring(pos, j)))
+                                        {
+                                            Kind k = keyWordMap.get(chars.substring(pos, j));
+                                            tokens.add(new Token(k, pos, j - pos));
+                                        }
+                                        else
+                                        {
+                                            tokens.add(new Token(Kind.IDENT, pos, j - pos));
+                                        }
                                         pos = j - 1;
                                     }
                                     catch(StringIndexOutOfBoundsException ex)
                                     {
-                                        tokens.add(new Token(Kind.IDENT, pos, j - pos));
+                                        Kind k = keyWordMap.get(chars.substring(pos, j));
+                                        k = k == null ? Kind.IDENT : k;
+                                        tokens.add(new Token(k, pos, j - pos));
                                         pos = j - 1;
                                     }
+                                }
+                                else
+                                {
+                                    // We don't recognize any of these chars
+                                    throw new IllegalCharException(
+                                        String.format(
+                                            "Found unknown character %c at index %s",
+                                                ch, new Token(Kind.EOF, pos, 0).getLinePos()
+                                        )
+                                    );
                                 }
                                 //</editor-fold>
                                 break;
