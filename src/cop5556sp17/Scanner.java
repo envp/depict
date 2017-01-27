@@ -347,7 +347,7 @@ public class Scanner
                                 catch(StringIndexOutOfBoundsException ex)
                                 {
                                     throw new IllegalCharException(
-                                        String.format("Illegal character %c at index %d",
+                                        String.format("Illegal character %c at index %s",
                                               chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
                                         )
                                     );
