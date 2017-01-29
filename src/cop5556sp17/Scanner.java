@@ -573,6 +573,9 @@ public class Scanner
                         }
                         switch(ch)
                         {
+                            case '\n':
+                                newLines.add(pos);
+                                break;
                             case '*':
                                 state = State.EXPECT_SLASH;
                                 break;
@@ -590,6 +593,9 @@ public class Scanner
                         }
                         switch(ch)
                         {
+                            case '\n':
+                                newLines.add(pos);
+                                break;
                             case '*':
                                 state = State.EXPECT_SLASH;
                                 break;
