@@ -776,7 +776,7 @@ public class ScannerTest
         {
             token = scanner.nextToken();
             assertEquals(TIMES, token.kind);
-            assertEquals(linepos, token.getLinePos());
+            assertEquals(linepo, token.getLinePos());
         }
 
         token = scanner.nextToken();
