@@ -696,7 +696,7 @@ public class Parser
      */
     private Token consume() throws SyntaxException
     {
-        System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
+//        System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
         Token tmp = tok;
         tok = scanner.nextToken();
         return tmp;
