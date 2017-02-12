@@ -86,7 +86,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = SEMI.text;
 
-        for(int i = 0; i < 3; ++i)
+        for( int i = 0; i < 3; ++i )
         {
             token = scanner.nextToken();
 
@@ -112,7 +112,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = COMMA.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -138,7 +138,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = LPAREN.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -164,7 +164,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = RPAREN.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -190,7 +190,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = LBRACE.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -216,7 +216,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = RBRACE.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -242,7 +242,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = OR.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -268,7 +268,7 @@ public class ScannerTest
         Scanner.Token token;
         String text = AND.text;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -307,7 +307,7 @@ public class ScannerTest
 
         int[] position = {0, 3, 8};
 
-        for(int i = 0; i < 3; ++i)
+        for( int i = 0; i < 3; ++i )
         {
             token = scanner.nextToken();
 
@@ -336,7 +336,7 @@ public class ScannerTest
 
         Scanner.Token token;
 
-        for(int i = 0; i < 6; ++i)
+        for( int i = 0; i < 6; ++i )
         {
             token = scanner.nextToken();
 
@@ -364,7 +364,7 @@ public class ScannerTest
 
         Scanner.Token token;
 
-        for(int i = 0; i < 5; ++i)
+        for( int i = 0; i < 5; ++i )
         {
             token = scanner.nextToken();
 
@@ -393,7 +393,7 @@ public class ScannerTest
 
         Scanner.Token token;
 
-        for(int i = 0; i < 3; ++i)
+        for( int i = 0; i < 3; ++i )
         {
             token = scanner.nextToken();
 
@@ -508,7 +508,7 @@ public class ScannerTest
         Scanner.Token token;
         sc.scan();
 
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = sc.nextToken();
 
@@ -528,7 +528,7 @@ public class ScannerTest
         String[] input = {"\\", ":", "\"", "'", "#", "@", "^", "[", "]", "?"};
         Scanner scanner;
 
-        for(String anInput : input)
+        for( String anInput : input )
         {
             scanner = new Scanner(anInput);
             thrown.expect(IllegalCharException.class);
@@ -576,7 +576,7 @@ public class ScannerTest
 
         s.scan();
         Scanner.Token token;
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = s.nextToken();
 
@@ -599,7 +599,7 @@ public class ScannerTest
 
         s.scan();
         Scanner.Token token;
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = s.nextToken();
 
@@ -622,7 +622,7 @@ public class ScannerTest
 
         s.scan();
         Scanner.Token token;
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = s.nextToken();
 
@@ -658,7 +658,7 @@ public class ScannerTest
         s.scan();
         Scanner.Token token;
 
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = s.nextToken();
 
@@ -689,7 +689,7 @@ public class ScannerTest
         scanner.scan();
         Scanner.Token token;
 
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = scanner.nextToken();
 
@@ -722,7 +722,7 @@ public class ScannerTest
         scanner.scan();
         Scanner.Token token;
 
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = scanner.nextToken();
             assertEquals(type, token.kind);
@@ -744,7 +744,7 @@ public class ScannerTest
         scanner.scan();
         Scanner.Token token;
 
-        for(Kind type : types)
+        for( Kind type : types )
         {
             token = scanner.nextToken();
             assertEquals(type, token.kind);
@@ -754,6 +754,7 @@ public class ScannerTest
         assertEquals(EOF, token.kind);
 
     }
+
     @Test
     public void testLinePos() throws IllegalCharException, IllegalNumberException
     {
@@ -772,7 +773,7 @@ public class ScannerTest
         scanner.scan();
         Scanner.Token token;
 
-        for(Scanner.LinePos linepo : linepos)
+        for( Scanner.LinePos linepo : linepos )
         {
             token = scanner.nextToken();
             assertEquals(TIMES, token.kind);

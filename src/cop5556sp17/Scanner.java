@@ -94,7 +94,7 @@ public class Scanner
         START(0),
         INSIDE_COMMENT(0),
         EXPECT_SLASH(0);
-        
+
         State(int start)
         {
             this.start = start;
@@ -152,22 +152,22 @@ public class Scanner
         @Override
         public boolean equals(Object other)
         {
-            if(other == null)
+            if( other == null )
             {
                 return false;
             }
 
-            if(this == other)
+            if( this == other )
             {
                 return true;
             }
 
-            if(other.getClass() != this.getClass())
+            if( other.getClass() != this.getClass() )
             {
                 return false;
             }
 
-            LinePos _other = (LinePos) other;
+            LinePos _other = ( LinePos ) other;
 
             return (_other.line == line) && (_other.posInLine == posInLine);
         }
@@ -182,7 +182,7 @@ public class Scanner
         // returns the text of this Token
         public String getText()
         {
-            if(kind.getText().length() == length)
+            if( kind.getText().length() == length )
             {
                 return kind.getText();
             }
@@ -202,11 +202,11 @@ public class Scanner
 
             line = Collections.binarySearch(Scanner.newLines, this.pos);
             line = line < 0 ? (-line - 1) : line;
-            if(line == 0)
+            if( line == 0 )
             {
                 col = this.pos;
             }
-            else if(line > 0)
+            else if( line > 0 )
             {
                 col = this.pos - 1 - Scanner.newLines.get(line - 1);
             }
@@ -234,6 +234,21 @@ public class Scanner
         {
             return Integer.parseInt(getText());
         }
+
+        public boolean isKind(Kind k)
+        {
+            return kind == k;
+        }
+
+        public boolean isKind(Kind... kinds)
+        {
+            boolean found = false;
+            for( Kind k : kinds )
+            {
+                found = found || isKind(k);
+            }
+            return found;
+        }
     }
 
     Scanner(String chars)
@@ -246,14 +261,14 @@ public class Scanner
         this.keyWordMap = new HashMap<>();
         newLines = new ArrayList<>();
 
-        for(Kind kind : Kind.values())
+        for( Kind kind : Kind.values() )
         {
-            if(!kind.getText().isEmpty())
+            if( !kind.getText().isEmpty() )
             {
                 kinds.put(kind.getText(), kind);
 
                 // All keywords
-                if(kind.name().contains("KW_") || kind.name().contains("OP_") )
+                if( kind.name().contains("KW_") || kind.name().contains("OP_") )
                 {
                     keyWordMap.put(kind.getText(), kind);
                 }
@@ -275,16 +290,16 @@ public class Scanner
         char ch, _ch;
         State state = State.START;
 
-        for(pos = 0; pos < chars.length(); ++pos)
+        for( pos = 0; pos < chars.length(); ++pos )
         {
             ch = chars.charAt(pos);
             int start;
-            if(!Character.isWhitespace(ch) || ch == '\n')
+            if( !Character.isWhitespace(ch) || ch == '\n' )
             {
-                switch(state)
+                switch( state )
                 {
                     case START:
-                        switch(ch)
+                        switch( ch )
                         {
                             case '\n':
                                 newLines.add(pos);
@@ -309,7 +324,7 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '=')
+                                    if( _ch == '=' )
                                     {
                                         tokens.add(new Token(Kind.NOTEQUAL, pos, 2));
                                         ++pos;
@@ -319,7 +334,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.NOT, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.NOT, pos, 1));
                                 }
@@ -330,7 +345,7 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '=')
+                                    if( _ch == '=' )
                                     {
                                         tokens.add(new Token(Kind.EQUAL, pos, 2));
                                         ++pos;
@@ -339,16 +354,16 @@ public class Scanner
                                     {
                                         throw new IllegalCharException(
                                             String.format("Illegal character %c at index %s",
-                                                  chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
+                                                          chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
                                             )
                                         );
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     throw new IllegalCharException(
                                         String.format("Illegal character %c at index %s",
-                                              chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
+                                                      chars.charAt(pos), new Token(Kind.EOF, pos, 0).getLinePos()
                                         )
                                     );
                                 }
@@ -359,12 +374,12 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '=')
+                                    if( _ch == '=' )
                                     {
                                         tokens.add(new Token(Kind.LE, pos, 2));
                                         ++pos;
                                     }
-                                    else if(_ch == '-')
+                                    else if( _ch == '-' )
                                     {
                                         tokens.add(new Token(Kind.ASSIGN, pos, 2));
                                         ++pos;
@@ -374,7 +389,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.LT, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.LT, pos, 1));
                                 }
@@ -385,7 +400,7 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '=')
+                                    if( _ch == '=' )
                                     {
                                         tokens.add(new Token(Kind.GE, pos, 2));
                                         ++pos;
@@ -395,7 +410,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.GT, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.GT, pos, 1));
                                 }
@@ -406,7 +421,7 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '>')
+                                    if( _ch == '>' )
                                     {
                                         tokens.add(new Token(Kind.ARROW, pos, 2));
                                         ++pos;
@@ -416,7 +431,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.MINUS, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.MINUS, pos, 1));
                                 }
@@ -427,12 +442,12 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '-')
+                                    if( _ch == '-' )
                                     {
                                         try
                                         {
                                             _ch = chars.charAt(pos + 2);
-                                            if(_ch == '>')
+                                            if( _ch == '>' )
                                             {
                                                 tokens.add(new Token(Kind.BARARROW, pos, 3));
                                                 pos = pos + 2;
@@ -444,7 +459,7 @@ public class Scanner
                                                 ++pos;
                                             }
                                         }
-                                        catch(StringIndexOutOfBoundsException ex)
+                                        catch( StringIndexOutOfBoundsException ex )
                                         {
                                             tokens.add(new Token(Kind.OR, pos, 1));
                                             tokens.add(new Token(Kind.MINUS, pos + 1, 1));
@@ -456,7 +471,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.OR, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.OR, pos, 1));
                                 }
@@ -467,7 +482,7 @@ public class Scanner
                                 try
                                 {
                                     _ch = chars.charAt(pos + 1);
-                                    if(_ch == '*')
+                                    if( _ch == '*' )
                                     {
                                         state = State.INSIDE_COMMENT;
                                         state.start = pos;
@@ -478,7 +493,7 @@ public class Scanner
                                         tokens.add(new Token(Kind.DIV, pos, 1));
                                     }
                                 }
-                                catch(StringIndexOutOfBoundsException ex)
+                                catch( StringIndexOutOfBoundsException ex )
                                 {
                                     tokens.add(new Token(Kind.DIV, pos, 1));
                                 }
@@ -486,12 +501,12 @@ public class Scanner
                                 break;
                             //<editor-fold desc="INT_LIT, IDENT">
                             default:
-                                if(isDigit(ch))
+                                if( isDigit(ch) )
                                 {
                                     j = pos;
                                     try
                                     {
-                                        while(isDigit(chars.charAt(j)))
+                                        while( isDigit(chars.charAt(j)) )
                                         {
                                             ++j;
                                         }
@@ -499,20 +514,20 @@ public class Scanner
                                         tokens.add(new Token(Kind.INT_LIT, pos, j - pos));
                                         pos = j - 1;
                                     }
-                                    catch(NumberFormatException ex)
+                                    catch( NumberFormatException ex )
                                     {
                                         throw new IllegalNumberException(
                                             "Found illegal integer beginning at " +
                                                 new Token(Kind.EOF, pos, 0).getLinePos()
                                         );
                                     }
-                                    catch(StringIndexOutOfBoundsException ex)
+                                    catch( StringIndexOutOfBoundsException ex )
                                     {
                                         try
                                         {
                                             int $ = Integer.parseInt(chars.substring(pos, j));
                                         }
-                                        catch(NumberFormatException _ex)
+                                        catch( NumberFormatException _ex )
                                         {
                                             throw new IllegalNumberException(
                                                 "Found illegal integer beginning at " +
@@ -523,16 +538,16 @@ public class Scanner
                                         pos = j - 1;
                                     }
                                 }
-                                else if(isIdentStart(ch))
+                                else if( isIdentStart(ch) )
                                 {
                                     j = pos;
                                     try
                                     {
-                                        while(isIdentPart(chars.charAt(j)))
+                                        while( isIdentPart(chars.charAt(j)) )
                                         {
                                             ++j;
                                         }
-                                        if(isKeywordOrReserved(chars.substring(pos, j)))
+                                        if( isKeywordOrReserved(chars.substring(pos, j)) )
                                         {
                                             Kind k = keyWordMap.get(chars.substring(pos, j));
                                             tokens.add(new Token(k, pos, j - pos));
@@ -543,7 +558,7 @@ public class Scanner
                                         }
                                         pos = j - 1;
                                     }
-                                    catch(StringIndexOutOfBoundsException ex)
+                                    catch( StringIndexOutOfBoundsException ex )
                                     {
                                         Kind k = keyWordMap.get(chars.substring(pos, j));
                                         k = k == null ? Kind.IDENT : k;
@@ -553,11 +568,11 @@ public class Scanner
                                 }
                                 else
                                 {
-                                    // We don't recognize any of these chars
+                                    // We don'token recognize any of these chars
                                     throw new IllegalCharException(
                                         String.format(
                                             "Found unknown character %c at index %s",
-                                                ch, new Token(Kind.EOF, pos, 0).getLinePos()
+                                            ch, new Token(Kind.EOF, pos, 0).getLinePos()
                                         )
                                     );
                                 }
@@ -567,11 +582,11 @@ public class Scanner
                         break;
                     //<editor-fold desc="case INSIDE_COMMENT">
                     case INSIDE_COMMENT:
-                        if(pos + 1 == chars.length())
+                        if( pos + 1 == chars.length() )
                         {
                             throw new IllegalCharException("End of source reached before comment close was seen");
                         }
-                        switch(ch)
+                        switch( ch )
                         {
                             case '\n':
                                 newLines.add(pos);
@@ -587,11 +602,11 @@ public class Scanner
                         break;
                     //<editor-fold desc="case EXPECT_SLASH">
                     case EXPECT_SLASH:
-                        if(pos + 1 > chars.length())
+                        if( pos + 1 > chars.length() )
                         {
                             throw new IllegalCharException("End of source reached before comment close was seen");
                         }
-                        switch(ch)
+                        switch( ch )
                         {
                             case '\n':
                                 newLines.add(pos);
@@ -624,7 +639,7 @@ public class Scanner
      */
     public Token nextToken()
     {
-        if(tokenNum >= tokens.size())
+        if( tokenNum >= tokens.size() )
             return null;
         return tokens.get(tokenNum++);
     }
@@ -635,9 +650,9 @@ public class Scanner
      */
     public Token peek()
     {
-        if(tokenNum >= tokens.size())
+        if( tokenNum >= tokens.size() )
             return null;
-        return tokens.get(tokenNum + 1);
+        return tokens.get(tokenNum);
     }
 
     /**
