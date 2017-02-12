@@ -238,7 +238,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    private void programTail() throws SyntaxException
+    void programTail() throws SyntaxException
     {
         if( !Productions.ProgramTail.predictContains(tok.kind) )
         {
@@ -389,7 +389,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    private void ifStatement() throws SyntaxException
+    void ifStatement() throws SyntaxException
     {
         // System.out.println("ifStatement");
         match(KW_IF);
@@ -407,7 +407,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    private void whileStatement() throws SyntaxException
+    void whileStatement() throws SyntaxException
     {
         // System.out.println("whileStatement");
         match(KW_WHILE);
@@ -425,7 +425,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    private void assign() throws SyntaxException
+    void assign() throws SyntaxException
     {
         // System.out.println("assign");
         match(IDENT);
@@ -451,6 +451,19 @@ public class Parser
             consume();
             chainElem();
         } while( Productions.ArrowOp.firstContains(tok.kind) );
+    }
+
+    /**
+     * Matches a _arrowOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _arrowOp -> ARROW | BARARROW
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void arrowOp() throws SyntaxException
+    {
+        match(ARROW, BARARROW);
     }
 
     /**
@@ -491,6 +504,45 @@ public class Parser
             consume();
             arg();
         }
+    }
+
+    /**
+     * Matches a _filterOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _filterOp -> OP_BLUR | OP_GRAY | OP_CONVOLVE
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void filterOp() throws SyntaxException
+    {
+        match(OP_BLUR, OP_GRAY, OP_CONVOLVE);
+    }
+
+    /**
+     * Matches a _sframeOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _frameOp -> KW_SHOW | KW_HIDE | KW_MOVE | KW_XLOC | KW_YLOC
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void frameOp() throws SyntaxException
+    {
+        match(KW_SHOW, KW_HIDE, KW_MOVE, KW_XLOC, KW_YLOC);
+    }
+
+    /**
+     * Matches a _imageOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _imageOp -> OP_WIDTH | OP_HEIGHT | KW_SCALE
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void imageOp() throws SyntaxException
+    {
+        match(OP_WIDTH, OP_HEIGHT, KW_SCALE);
     }
 
     /**
@@ -587,7 +639,7 @@ public class Parser
     }
 
     /**
-     * Matches a _factor pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * Matches a _relOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
      * <pre>
      *      _factor -> IDENT | INT_LIT | KW_TRUE | KW_FALSE | KW_SCREENWIDTH | KW_SCREENHEIGHT | ( _expression )
      * </pre>
@@ -622,6 +674,48 @@ public class Parser
     }
 
     /**
+     * Matches a _relOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _relOp -> LT | LE | GT | GE | EQUAL | NOTEQUAL
+     * </pre>
+     * <p>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     *                         </p>
+     */
+    void relOp() throws SyntaxException
+    {
+        // System.out.println("factor");
+        match(LT, LE, GT, GE, EQUAL, NOTEQUAL);
+    }
+
+    /**
+     * Matches a _weakOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _weakOp -> PLUS | MINUS | OR
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void weakOp() throws SyntaxException
+    {
+        match(PLUS, MINUS, OR);
+    }
+
+    /**
+     * Matches a _strongOp pattern given a sequence of tokens, non terminals denoted with a '_' prefix
+     * <pre>
+     *      _strongOp -> TIMES | DIV | AND | MOD
+     * </pre>
+     *
+     * @throws SyntaxException if the token sequence does not match definition
+     */
+    void strongOp() throws SyntaxException
+    {
+        match(TIMES, DIV, AND, MOD);
+    }
+
+    /**
      * Checks whether the current token is the EOF token. If not, a
      * SyntaxException is thrown.
      *
@@ -637,6 +731,11 @@ public class Parser
         throw new SyntaxException(
             getErrorMessage(tok, EOF)
         );
+    }
+
+    public Token matchEOFForTest() throws SyntaxException
+    {
+        return matchEOF();
     }
 
     /**
