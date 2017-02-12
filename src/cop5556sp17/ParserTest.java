@@ -79,6 +79,8 @@ public class ParserTest
         }
     }
 
+    
+
     @Test
     public void testFactors() throws IllegalCharException, IllegalNumberException, SyntaxException
     {

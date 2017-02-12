@@ -28,32 +28,31 @@ public class Parser
     private enum Productions
     {
         //<editor-fold desc="Production names">
-        StrongOp(true, false),
-        WeakOp(true, false),
-        RelOp(true, false),
-        Factor(false, false),
-        Elem(false, false),
-        Term(false, false),
-        Expression(false, false),
-        Arg(false, true),
-        ImageOp(true, false),
-        FrameOp(true, false),
-        FilterOp(true, false),
-        ChainElem(false, false),
-        ArrowOp(true, false),
-        IfStatement(false, false),
-        WhileStatement(false, false),
-        Chain(false, false),
-        Assign(false, false),
-        Statement(false, false),
-        Dec(true, false),
-        Block(false, false),
-        ParamDec(false, false),
-        ProgramTail(false, false),
-        Program(false, false);
+        StrongOp(false),
+        WeakOp(false),
+        RelOp(false),
+        Factor(false),
+        Elem(false),
+        Term(false),
+        Expression(false),
+        Arg(true),
+        ImageOp(false),
+        FrameOp(false),
+        FilterOp(false),
+        ChainElem(false),
+        ArrowOp(false),
+        IfStatement(false),
+        WhileStatement(false),
+        Chain(false),
+        Assign(false),
+        Statement(false),
+        Dec(false),
+        Block(false),
+        ParamDec(false),
+        ProgramTail(false),
+        Program(false);
         //</editor-fold>
 
-        boolean terminal;
         boolean epsilon;
 
         /*
@@ -165,9 +164,8 @@ public class Parser
             PREDICT.put(Arg, new HashSet<>(Arrays.asList(LPAREN, ARROW, BARARROW, SEMI)));
         }
 
-        Productions(boolean terminal, boolean epsilon)
+        Productions(boolean epsilon)
         {
-            this.terminal = terminal;
             this.epsilon = epsilon;
         }
 
