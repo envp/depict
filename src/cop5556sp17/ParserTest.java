@@ -41,9 +41,9 @@ public class ParserTest
             try
             {
                 Parser.class.getDeclaredMethod(this.method).invoke(parser);
-                Scanner.Token t = scanner.nextToken();
-                System.out.println(t == null ? "null" : t.kind);
-//                assertNull(t);
+                // Scanner.Token t = scanner.nextToken();
+                // System.out.println(t == null ? "null" : t.kind);
+                // assertNull(t);
             }
             catch( SecurityException | IllegalAccessException | IllegalArgumentException | NoSuchMethodException e )
             {
@@ -86,7 +86,7 @@ public class ParserTest
         for( String test : tests )
         {
             ParserTestCase.test(test, "factor");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -100,7 +100,7 @@ public class ParserTest
         for( String elem : elems )
         {
             ParserTestCase.test(elem, "elem");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -115,7 +115,7 @@ public class ParserTest
         for( String elem : elems )
         {
             ParserTestCase.test(elem, "elem");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -129,7 +129,7 @@ public class ParserTest
         for( String term : terms )
         {
             ParserTestCase.test(term, "term");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -146,7 +146,7 @@ public class ParserTest
         for( String expr : exprs )
         {
             ParserTestCase.test(expr, "expression");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -166,7 +166,7 @@ public class ParserTest
         for( String arg : args )
         {
             ParserTestCase.test(arg, "arg");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -180,7 +180,7 @@ public class ParserTest
         {
             thrown.expect(SyntaxException.class);
             ParserTestCase.test(arg, "arg");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -197,7 +197,7 @@ public class ParserTest
         {
             thrown.expect(SyntaxException.class);
             ParserTestCase.test(arg, "arg");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -219,7 +219,7 @@ public class ParserTest
         for( String arg : args )
         {
             ParserTestCase.test(arg, "chainElem");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -242,7 +242,7 @@ public class ParserTest
         {
             thrown.expect(SyntaxException.class);
             ParserTestCase.test(arg, "chainElem");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -258,7 +258,7 @@ public class ParserTest
         for( String chain : chains )
         {
             ParserTestCase.test(chain, "chain");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -267,11 +267,11 @@ public class ParserTest
     {
         thrown.expect(SyntaxException.class);
         ParserTestCase.test("width -> height", "chain");
-        System.out.println("--------------------------");
+        // System.out.println("--------------------------");
 
         thrown.expect(SyntaxException.class);
         ParserTestCase.test("", "chain");
-        System.out.println("--------------------------");
+        // System.out.println("--------------------------");
     }
 
     @Test
@@ -287,7 +287,7 @@ public class ParserTest
         for( String dec : decs )
         {
             ParserTestCase.test(dec, "dec");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -304,7 +304,7 @@ public class ParserTest
         for( String paramDec : paramDecs )
         {
             ParserTestCase.test(paramDec, "paramDec");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -322,7 +322,7 @@ public class ParserTest
         for( String stmt : stmts )
         {
             ParserTestCase.test(stmt, "statement");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -343,7 +343,7 @@ public class ParserTest
         for( String block : blocks )
         {
             ParserTestCase.test(block, "block");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 
@@ -368,7 +368,7 @@ public class ParserTest
         for( String program : programs )
         {
             ParserTestCase.test(program, "parse");
-            System.out.println("--------------------------");
+            // System.out.println("--------------------------");
         }
     }
 }

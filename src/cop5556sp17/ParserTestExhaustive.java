@@ -41,7 +41,7 @@ public class ParserTestExhaustive
         String input = "  (3,5) ";
         Scanner scanner = new Scanner(input);
         scanner.scan();
-        System.out.println(scanner);
+        // System.out.println(scanner);
         Parser parser = new Parser(scanner);
         parser.arg();
     }
@@ -981,7 +981,7 @@ public class ParserTestExhaustive
         for( int i = 0; i < 50; i++ )
         {
             StringBuilder magic = pG.next();
-            System.out.println(magic.toString());
+            // System.out.println(magic.toString());
             new Tester(magic.toString()).test();
         }
     }
