@@ -240,28 +240,27 @@ public class Parser
      */
     private void programTail() throws SyntaxException
     {
-        switch( tok.kind )
+        if( !Productions.ProgramTail.predictContains(tok.kind) )
         {
-            case LBRACE:
-                block();
-                break;
-            case KW_URL:
-            case KW_FILE:
-            case KW_INTEGER:
-            case KW_BOOLEAN:
+            throw new SyntaxException(getErrorMessage(
+                tok,
+                LBRACE, KW_URL, KW_FILE, KW_INTEGER, KW_BOOLEAN
+            ));
+        }
+
+        if( Productions.Block.predictContains(tok.kind) )
+        {
+            block();
+        }
+        else if( Productions.ParamDec.predictContains(tok.kind) )
+        {
+            paramDec();
+            while( tok.isKind(COMMA) )
+            {
+                consume();
                 paramDec();
-                while( tok.isKind(COMMA) )
-                {
-                    consume();
-                    paramDec();
-                }
-                block();
-                break;
-            default:
-                throw new SyntaxException(getErrorMessage(
-                    tok,
-                    LBRACE, KW_URL, KW_FILE, KW_INTEGER, KW_BOOLEAN
-                ));
+            }
+            block();
         }
     }
 
@@ -336,55 +335,50 @@ public class Parser
     void statement() throws SyntaxException
     {
         // System.out.println("statement");
-        switch( tok.kind )
+        if( !Productions.Statement.predictContains(tok.kind) )
         {
-            case OP_SLEEP:
-                consume();
-                expression();
-                match(SEMI);
-                break;
-            case KW_WHILE:
-                whileStatement();
-                break;
-            case KW_IF:
-                ifStatement();
-                break;
-            case IDENT:
-                // This maketh yon grammar LL(2)
-                if( scanner.peek().isKind(ASSIGN) )
-                {
-                    assign();
-                }
-                else
-                {
-                    chain();
-                }
-                match(SEMI);
-                break;
-            case OP_BLUR:
-            case OP_GRAY:
-            case OP_CONVOLVE:
-            case KW_SHOW:
-            case KW_HIDE:
-            case KW_MOVE:
-            case KW_XLOC:
-            case KW_YLOC:
-            case OP_WIDTH:
-            case OP_HEIGHT:
-            case KW_SCALE:
-                chain();
-                match(SEMI);
-                break;
-            default:
-                throw new SyntaxException(getErrorMessage(
-                    tok,
-                    OP_SLEEP,
-                    KW_WHILE,
-                    KW_IF,
-                    IDENT, OP_BLUR, OP_GRAY, OP_CONVOLVE, KW_SHOW, KW_HIDE,
-                    KW_MOVE, KW_XLOC, KW_YLOC, OP_WIDTH, OP_HEIGHT, KW_SCALE
-                ));
+            throw new SyntaxException(getErrorMessage(
+                tok,
+                OP_SLEEP,
+                KW_WHILE,
+                KW_IF,
+                IDENT, OP_BLUR, OP_GRAY, OP_CONVOLVE, KW_SHOW, KW_HIDE,
+                KW_MOVE, KW_XLOC, KW_YLOC, OP_WIDTH, OP_HEIGHT, KW_SCALE
+            ));
         }
+        if( tok.isKind(OP_SLEEP) )
+        {
+            consume();
+            expression();
+            match(SEMI);
+        }
+        else if( Productions.WhileStatement.predictContains(tok.kind) )
+        {
+            whileStatement();
+        }
+        else if( Productions.IfStatement.predictContains(tok.kind) )
+        {
+            ifStatement();
+        }
+        else if( tok.isKind(IDENT) )
+        {
+            // This maketh yon grammar LL(2)
+            if( scanner.peek().isKind(ASSIGN) )
+            {
+                assign();
+            }
+            else
+            {
+                chain();
+            }
+            match(SEMI);
+        }
+        else if( Productions.Chain.predictContains(tok.kind) )
+        {
+            chain();
+            match(SEMI);
+        }
+
     }
 
     /**
@@ -474,42 +468,28 @@ public class Parser
     void chainElem() throws SyntaxException
     {
         // System.out.println("chainElem");
-        switch( tok.kind )
+        if( !Productions.ChainElem.predictContains(tok.kind) )
         {
-            case IDENT:
-                consume();
-                break;
-            case OP_BLUR:
-            case OP_GRAY:
-            case OP_CONVOLVE:
-                // filterOps
-                consume();
-                arg();
-                break;
-            case KW_SHOW:
-            case KW_HIDE:
-            case KW_MOVE:
-            case KW_XLOC:
-            case KW_YLOC:
-                // frameOps
-                consume();
-                arg();
-                break;
-            case OP_WIDTH:
-            case OP_HEIGHT:
-            case KW_SCALE:
-                // imageOps
-                consume();
-                arg();
-                break;
-            default:
-                throw new SyntaxException(getErrorMessage(
-                    tok,
-                    IDENT,
-                    OP_BLUR, OP_GRAY, OP_CONVOLVE,
-                    KW_SHOW, KW_HIDE, KW_MOVE, KW_XLOC, KW_YLOC,
-                    OP_WIDTH, OP_HEIGHT, KW_SCALE
-                ));
+            throw new SyntaxException(getErrorMessage(
+                tok,
+                IDENT,
+                OP_BLUR, OP_GRAY, OP_CONVOLVE,
+                KW_SHOW, KW_HIDE, KW_MOVE, KW_XLOC, KW_YLOC,
+                OP_WIDTH, OP_HEIGHT, KW_SCALE
+            ));
+        }
+
+        if( tok.isKind(IDENT) )
+        {
+            consume();
+        }
+        else if( Productions.FilterOp.predictContains(tok.kind) ||
+            Productions.FrameOp.predictContains(tok.kind) ||
+            Productions.ImageOp.predictContains(tok.kind)
+            )
+        {
+            consume();
+            arg();
         }
     }
 
@@ -524,26 +504,26 @@ public class Parser
     void arg() throws SyntaxException
     {
         // System.out.println("arg");
-        switch( tok.kind )
+        if( !Productions.Arg.predictContains(tok.kind) )
         {
-            case ARROW:
-            case BARARROW:
-            case SEMI:
-                break;
-            case LPAREN:
-                do
-                {
-                    consume();
-                    expression();
-                } while( tok.isKind(COMMA) );
-                match(RPAREN);
-                break;
-            default:
-                throw new SyntaxException(getErrorMessage(
-                    tok,
-                    ARROW, BARARROW, LPAREN
-                ));
+            throw new SyntaxException(getErrorMessage(
+                tok,
+                ARROW, BARARROW, LPAREN
+            ));
         }
+
+        if( tok.isKind(LPAREN) )
+        {
+            do
+            {
+                consume();
+                expression();
+            } while( tok.isKind(COMMA) );
+            match(RPAREN);
+        }
+        /*
+         * The alternative is one of ARROW, BARARROW, SEMI which we do not need to consume
+         */
     }
 
     /**
@@ -716,7 +696,7 @@ public class Parser
      */
     private Token consume() throws SyntaxException
     {
-        // System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
+        System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
         Token tmp = tok;
         tok = scanner.nextToken();
         return tmp;
