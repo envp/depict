@@ -155,6 +155,7 @@ public class ParserTest
     public void testArguments() throws IllegalCharException, IllegalNumberException, SyntaxException
     {
         String[] args = {
+            "123(",
             "(3)",
             "((2352))",
             "((((3))))",
@@ -219,29 +220,6 @@ public class ParserTest
 
         for( String arg : args )
         {
-            ParserTestCase.test(arg, "chainElem");
-            // System.out.println("--------------------------");
-        }
-    }
-
-    @Test
-    public void testChainElemErrors() throws IllegalCharException, IllegalNumberException, SyntaxException
-    {
-        String[] args = {
-            "abc_ident;",
-            "blu(3,4)",
-            "gry(0)",
-            "conolve((1, 0, 1))",
-            "move(0,46)",
-            "xloc",
-            "yloc",
-            "width",
-            "height"
-        };
-
-        for( String arg : args )
-        {
-            thrown.expect(SyntaxException.class);
             ParserTestCase.test(arg, "chainElem");
             // System.out.println("--------------------------");
         }
@@ -363,7 +341,8 @@ public class ParserTest
                 "while(true) { " +
                 "   if(i % 2 == 0) { i <- i / 2;} " +
                 "   if(i % 2 == 1) {i <- 3*i + 1;} " +
-                "   img -> move(0,i) -> blur(i/255) -> move(i, 0);}}"
+                "   img -> move(0,i) -> blur(i/255) -> move(i, 0);}}",
+            "boo url URL, file FILE { if (dodo != 7) {} doo <- (screenheight) - screenwidth;image woo convolve(false) -> moo; sleep foo + (true) & goo == true;while (3 < 4*5 | ((1)) > 7) {image nana} boolean mama }"
         };
 
         for( String program : programs )

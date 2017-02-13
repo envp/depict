@@ -556,14 +556,6 @@ public class Parser
     void arg() throws SyntaxException
     {
         // System.out.println("arg");
-        if( !Productions.Arg.predictContains(tok.kind) )
-        {
-            throw new SyntaxException(getErrorMessage(
-                tok,
-                ARROW, BARARROW, LPAREN
-            ));
-        }
-
         if( tok.isKind(LPAREN) )
         {
             do
@@ -574,7 +566,8 @@ public class Parser
             match(RPAREN);
         }
         /*
-         * The alternative is one of ARROW, BARARROW, SEMI which we do not need to consume
+         * The alternative is one of ARROW, BARARROW, SEMI which we do not need to consume,
+         * and will be ensured by the calling method (esp. matching SEMIs)
          */
     }
 
@@ -795,7 +788,7 @@ public class Parser
      */
     private Token consume() throws SyntaxException
     {
-//        System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
+        // System.out.printf("%-15s\t@\t%s\n", tok.kind, tok.getLinePos());
         Token tmp = tok;
         tok = scanner.nextToken();
         return tmp;
