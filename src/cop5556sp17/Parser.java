@@ -447,11 +447,13 @@ public class Parser
         // System.out.println("chain");
         chainElem();
         arrowOp();
-        do
+        chainElem();
+
+        while( Productions.ArrowOp.firstContains(tok.kind) )
         {
             consume();
             chainElem();
-        } while( Productions.ArrowOp.firstContains(tok.kind) );
+        }
     }
 
     /**
