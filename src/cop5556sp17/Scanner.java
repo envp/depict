@@ -249,6 +249,56 @@ public class Scanner
             }
             return found;
         }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if( this == obj )
+            {
+                return true;
+            }
+            if( obj == null )
+            {
+                return false;
+            }
+            if( !(obj instanceof Token) )
+            {
+                return false;
+            }
+
+            Token other = ( Token ) obj;
+            if( !getOuterType().equals(other.getOuterType()) )
+            {
+                return false;
+            }
+            if( kind != other.kind )
+            {
+                return false;
+            }
+            if( length != other.length )
+            {
+                return false;
+            }
+            if( pos != other.pos )
+            {
+                return false;
+            }
+            return true;
+        }
+
+        private Scanner getOuterType()
+        {
+            return Scanner.this;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int result = kind.hashCode();
+            result = 31 * result + pos;
+            result = 31 * result + length;
+            return result;
+        }
     }
 
     Scanner(String chars)
@@ -640,7 +690,9 @@ public class Scanner
     public Token nextToken()
     {
         if( tokenNum >= tokens.size() )
+        {
             return null;
+        }
         return tokens.get(tokenNum++);
     }
 
@@ -651,7 +703,9 @@ public class Scanner
     public Token peek()
     {
         if( tokenNum >= tokens.size() )
+        {
             return null;
+        }
         return tokens.get(tokenNum);
     }
 

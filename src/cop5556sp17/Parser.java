@@ -446,6 +446,7 @@ public class Parser
     {
         // System.out.println("chain");
         chainElem();
+        arrowOp();
         do
         {
             consume();

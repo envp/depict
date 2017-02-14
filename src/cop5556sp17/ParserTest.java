@@ -327,6 +327,23 @@ public class ParserTest
     }
 
     @Test
+    public void testBlockError() throws IllegalCharException, IllegalNumberException, SyntaxException
+    {
+
+
+        String[] blocks = {
+            "{a+b;}"
+        };
+
+        for( String block : blocks )
+        {
+            thrown.expect(SyntaxException.class);
+            ParserTestCase.test(block, "block");
+            System.out.println("--------------------------");
+        }
+    }
+
+    @Test
     public void testPrograms() throws IllegalCharException, IllegalNumberException, SyntaxException
     {
         String[] programs = {
