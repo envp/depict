@@ -221,6 +221,12 @@ public class Scanner
             this.length = length;
         }
 
+        @Override
+        public String toString()
+        {
+            return String.format("%s(%s)", this.kind, this.getText());
+        }
+
         /**
          * Precondition: kind = Kind.INT_LIT, the text can be represented with a
          * Java int. Note that the validity of the input should have been

@@ -6,11 +6,6 @@ import cop5556sp17.Scanner.IllegalNumberException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runners.Suite;
-
-import java.util.*;
-
-import static org.junit.Assert.assertNull;
 
 public class ParserTest
 {
