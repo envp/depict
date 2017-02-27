@@ -93,7 +93,7 @@ public class ASTTest
     @Test
     public void testBinaryExprSimple() throws IllegalCharException, IllegalNumberException, SyntaxException
     {
-        String input = "1+abc";
+        String input = "(1+abc)";
         Scanner scanner = new Scanner(input);
         scanner.scan();
         Parser parser = new Parser(scanner);
@@ -103,6 +103,7 @@ public class ASTTest
         assertEquals(IntLitExpression.class, be.getE0().getClass());
         assertEquals(IdentExpression.class, be.getE1().getClass());
         assertEquals(PLUS, be.getOp().kind);
+        System.out.println(be);
     }
 
     @Test

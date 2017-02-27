@@ -221,8 +221,7 @@ public class Scanner
             this.length = length;
         }
 
-        @Override
-        public String toString()
+        public String errorString()
         {
             return String.format("%s(%s)", this.kind, this.getText());
         }

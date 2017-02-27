@@ -197,7 +197,7 @@ public class Parser
                                     collect(Collectors.joining(", "));
         return String.format(
             "Saw token %s at %s, but expecting one of (%s)",
-            actual,
+            actual.errorString(),
             actual.getLinePos(),
             expNames
         );
@@ -209,7 +209,7 @@ public class Parser
      *
      * @throws SyntaxException
      */
-    Program parse() throws SyntaxException
+    ASTNode parse() throws SyntaxException
     {
         // System.out.println("parse");
         Program _p = program();
@@ -230,7 +230,7 @@ public class Parser
         // System.out.println("program");
         Token first = tok;
         match(IDENT);
-        return programTail(first);
+        return _programTail(first);
     }
 
     /**
@@ -241,7 +241,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    private Program programTail(Token firstToken) throws SyntaxException
+    private Program _programTail(Token firstToken) throws SyntaxException
     {
         ArrayList<ParamDec> paramList = new ArrayList<>();
         ParamDec param;
@@ -284,7 +284,8 @@ public class Parser
     ParamDec paramDec() throws SyntaxException
     {
         // System.out.println("paramDec");
-        Token first = match(KW_URL, KW_FILE, KW_INTEGER, KW_BOOLEAN);
+        Token first = tok;
+        match(KW_URL, KW_FILE, KW_INTEGER, KW_BOOLEAN);
         Token id = tok;
         match(IDENT);
         return new ParamDec(first, id);
@@ -301,12 +302,11 @@ public class Parser
     Block block() throws SyntaxException
     {
         // System.out.println("block");
-
-        match(LBRACE);
         Token first = tok;
+        match(LBRACE);
 
         ArrayList<Dec> decList = new ArrayList<>();
-        ArrayList<Statement> stmtList = new ArrayList();
+        ArrayList<Statement> stmtList = new ArrayList<>();
         Dec d;
         Statement s;
 
@@ -351,6 +351,8 @@ public class Parser
      *      _statement      -> OP_SLEEP _expression SEMI | _whileStatement | _ifStatement | _chain SEMI | _assign SEMI
      *      _ifStatement    -> KW_IF LPAREN _expression RPAREN _block
      *      _whileStatement -> KW_WHILE LPAREN _expression RPAREN _block
+     *      _assign         -> IDENT ASSIGN _expression
+     *      _chain          ->
      * </pre>
      *
      * @throws SyntaxException if the token sequence does not match definition
@@ -359,7 +361,7 @@ public class Parser
     {
         // System.out.println("statement");
         Statement s = null;
-        Token first;
+        Token first = tok;
 
         if( !Productions.Statement.predictContains(tok.kind) )
         {
@@ -375,7 +377,6 @@ public class Parser
 
         if( tok.isKind(OP_SLEEP) )
         {
-            first = tok;
             consume();
             Expression e = expression();
             s = new SleepStatement(first, e);
@@ -383,18 +384,18 @@ public class Parser
         }
         else if( Productions.WhileStatement.predictContains(tok.kind) )
         {
-            s = whileStatement();
+            s = _whileStatement();
         }
         else if( Productions.IfStatement.predictContains(tok.kind) )
         {
-            s = ifStatement();
+            s = _ifStatement();
         }
         else if( tok.isKind(IDENT) )
         {
             // This maketh yon grammar LL(2)
             if( scanner.peek().isKind(ASSIGN) )
             {
-                s = assign();
+                s = _assign();
             }
             else
             {
@@ -420,9 +421,9 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    Statement ifStatement() throws SyntaxException
+    private Statement _ifStatement() throws SyntaxException
     {
-        // System.out.println("ifStatement");
+        // System.out.println("_ifStatement");
         Token first = tok;
         match(KW_IF);
         match(LPAREN);
@@ -440,9 +441,9 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    Statement whileStatement() throws SyntaxException
+    private Statement _whileStatement() throws SyntaxException
     {
-        // System.out.println("whileStatement");
+        // System.out.println("_whileStatement");
         Token first = tok;
         match(KW_WHILE);
         match(LPAREN);
@@ -460,11 +461,11 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    Statement assign() throws SyntaxException
+    private Statement _assign() throws SyntaxException
     {
         // System.out.println("assign");
         Token first = tok;
-        IdentLValue var = new IdentLValue(first);
+        IdentLValue var = new IdentLValue(tok);
         match(IDENT);
         match(ASSIGN);
         Expression e = expression();
@@ -487,7 +488,7 @@ public class Parser
         Token first = tok;
         ChainElem left = chainElem();
         Token arrow = tok;
-        arrowOp();
+        _arrowOp();
         ChainElem right = chainElem();
         c = new BinaryChain(first, left, arrow, right);
         while( Productions.ArrowOp.firstContains(tok.kind) )
@@ -508,7 +509,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    void arrowOp() throws SyntaxException
+    private void _arrowOp() throws SyntaxException
     {
         match(ARROW, BARARROW);
     }
@@ -549,15 +550,15 @@ public class Parser
         }
         else if( Productions.FilterOp.predictContains(tok.kind) )
         {
-            c = filterOp();
+            c = _filterOp();
         }
         else if( Productions.FrameOp.predictContains(tok.kind) )
         {
-            c = frameOp();
+            c = _frameOp();
         }
         else if( Productions.ImageOp.predictContains(tok.kind) )
         {
-            c = imageOp();
+            c = _imageOp();
         }
         return c;
     }
@@ -570,7 +571,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    ChainElem filterOp() throws SyntaxException
+    private ChainElem _filterOp() throws SyntaxException
     {
         Token first = tok;
         match(OP_BLUR, OP_GRAY, OP_CONVOLVE);
@@ -586,7 +587,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    ChainElem frameOp() throws SyntaxException
+    private ChainElem _frameOp() throws SyntaxException
     {
         Token first = tok;
         match(KW_SHOW, KW_HIDE, KW_MOVE, KW_XLOC, KW_YLOC);
@@ -602,7 +603,7 @@ public class Parser
      *
      * @throws SyntaxException if the token sequence does not match definition
      */
-    ImageOpChain imageOp() throws SyntaxException
+    private ImageOpChain _imageOp() throws SyntaxException
     {
         Token first = tok;
         match(OP_WIDTH, OP_HEIGHT, KW_SCALE);
@@ -731,14 +732,13 @@ public class Parser
     Expression factor() throws SyntaxException
     {
         // System.out.println("factor");
-        Token first;
+        Token first = tok;
         Expression e = null;
         if( Productions.Factor.predictContains(tok.kind) )
         {
             if( tok.isKind(LPAREN) )
             {
                 consume();
-                first = tok;
                 e = expression();
                 match(RPAREN);
             }
