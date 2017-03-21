@@ -226,6 +226,8 @@ public class Scanner
             return String.format("%s(%s)", this.kind, this.getText());
         }
 
+        public String toString() { return this.errorString(); }
+
         /**
          * Precondition: kind = Kind.INT_LIT, the text can be represented with a
          * Java int. Note that the validity of the input should have been

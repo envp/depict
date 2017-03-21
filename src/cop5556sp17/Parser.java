@@ -190,7 +190,7 @@ public class Parser
         tok = scanner.nextToken();
     }
 
-    private String getErrorMessage(Token actual, Kind... expected)
+    public static String getErrorMessage(Token actual, Kind... expected)
     {
         String expNames = Arrays.stream(expected).
             map(k -> String.format("%s(%s)", k.toString(), k.getText())).
@@ -352,7 +352,8 @@ public class Parser
      *      _ifStatement    -> KW_IF LPAREN _expression RPAREN _block
      *      _whileStatement -> KW_WHILE LPAREN _expression RPAREN _block
      *      _assign         -> IDENT ASSIGN _expression
-     *      _chain          ->
+     *      _chain          -> _chainElem _arrowOp _chainElem ( _arrowOp  _chainElem )*
+     *      _arrowOp        -> ARROW | BARARROW
      * </pre>
      *
      * @throws SyntaxException if the token sequence does not match definition
@@ -761,6 +762,11 @@ public class Parser
                     case KW_SCREENWIDTH:
                         e = new ConstantExpression(first);
                         break;
+                    default:
+                        throw new SyntaxException(getErrorMessage(
+                            tok,
+                            IDENT, INT_LIT, KW_TRUE, KW_FALSE, KW_SCREENHEIGHT, KW_SCREENWIDTH
+                        ));
                 }
                 consume();
 

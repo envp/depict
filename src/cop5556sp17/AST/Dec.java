@@ -1,17 +1,31 @@
 package cop5556sp17.AST;
 
+import cop5556sp17.Parser;
 import cop5556sp17.Scanner.Token;
 
 public class Dec extends ASTNode
 {
 
     final Token ident;
+    public Type.TypeName typeName;
+
+    public Type.TypeName getTypeName()
+    {
+        return typeName;
+    }
 
     public Dec(Token firstToken, Token ident)
     {
         super(firstToken);
-
         this.ident = ident;
+        try
+        {
+            this.typeName = Type.getTypeName(this.firstToken);
+        }
+        catch( Parser.SyntaxException e )
+        {
+            // do nothing
+        }
     }
 
     public Token getType()
