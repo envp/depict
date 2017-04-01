@@ -11,7 +11,7 @@ public abstract class Expression extends ASTNode
         super(firstToken);
     }
 
-    public Type.TypeName getTypeName()
+    public Type.TypeName getType()
     {
         return typeName;
     }

@@ -7,12 +7,23 @@ public class AssignmentStatement extends Statement
 
     public final IdentLValue var;
     public final Expression e;
+    public Type.TypeName type;
 
     public AssignmentStatement(Token firstToken, IdentLValue var, Expression e)
     {
         super(firstToken);
         this.var = var;
         this.e = e;
+    }
+
+    public Type.TypeName getType()
+    {
+        return this.type;
+    }
+
+    public void setType(Type.TypeName type)
+    {
+        this.type = type;
     }
 
     public IdentLValue getVar()

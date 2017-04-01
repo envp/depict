@@ -133,7 +133,8 @@ public class TypeCheckVisitorTest
             "p {integer x\n integer y \n integer x}",
             "p {integer x\n integer x}",
             "p boolean x {integer x\n x <- 10; \n integer x}",
-            "p image x {boolean x\n x <- true; \n integer x}"
+            "p image x {boolean x\n x <- true; \n integer x}",
+            "abc integer x, integer x {}"
         };
         for( String input : inputs )
         {
@@ -293,7 +294,7 @@ public class TypeCheckVisitorTest
             {
                 if( s instanceof AssignmentStatement )
                 {
-                    assertEquals(INTEGER, (( AssignmentStatement ) s).getE().getTypeName());
+                    assertEquals(INTEGER, (( AssignmentStatement ) s).getE().getType());
                 }
             }
         }
@@ -350,7 +351,7 @@ public class TypeCheckVisitorTest
             {
                 if( s instanceof AssignmentStatement )
                 {
-                    assertEquals(BOOLEAN, (( AssignmentStatement ) s).getE().getTypeName());
+                    assertEquals(BOOLEAN, (( AssignmentStatement ) s).getE().getType());
                 }
             }
         }
@@ -407,7 +408,7 @@ public class TypeCheckVisitorTest
             {
                 if( s instanceof AssignmentStatement )
                 {
-                    assertEquals(INTEGER, (( AssignmentStatement ) s).getE().getTypeName());
+                    assertEquals(INTEGER, (( AssignmentStatement ) s).getE().getType());
                 }
             }
         }
@@ -468,7 +469,7 @@ public class TypeCheckVisitorTest
                         IdentExpression e = (( IdentExpression ) (( AssignmentStatement ) s).getE());
                         IdentLValue l = (( AssignmentStatement ) s).getVar();
 
-                        assertTrue(e.getTypeName() == Type.getTypeName(l.getDec().getType()));
+                        assertTrue(e.getType() == Type.getTypeName(l.getDec().getType()));
                     }
                 }
             }
@@ -562,5 +563,25 @@ public class TypeCheckVisitorTest
             thrown.expect(TypeCheckVisitor.TypeCheckException.class);
             program.visit(v, null);
         }
+    }
+
+    @Test
+    public void testProgram() throws Exception
+    {
+        String input =
+            "program " +
+                "{" +
+                "   frame fram1" +
+                "   while (true)" +
+                "   {" +
+                "       if(true)\n" +
+                "       {" +
+                "           sleep 0;" +
+                "       }" +
+                "   }\n" +
+                "   fram1 ->yloc;\n" +
+                "}";
+
+        (new TestRunner(input, null)).test();
     }
 }

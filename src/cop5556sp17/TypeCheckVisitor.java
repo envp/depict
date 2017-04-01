@@ -266,7 +266,7 @@ public class TypeCheckVisitor implements ASTVisitor
 
         if( op.isKind(Kind.EQUAL, Kind.NOTEQUAL) )
         {
-            if( e0.getTypeName() == e1.getTypeName() )
+            if( e0.getType() == e1.getType() )
             {
                 binaryExpression.setTypeName(TypeName.BOOLEAN);
             }
@@ -280,9 +280,9 @@ public class TypeCheckVisitor implements ASTVisitor
         }
         else
         {
-            if( e0.getTypeName() == TypeName.INTEGER && e1.getTypeName() == TypeName.INTEGER )
+            if( e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.INTEGER )
             {
-                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES) )
+                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD) )
                 {
                     binaryExpression.setTypeName(TypeName.INTEGER);
                 }
@@ -294,20 +294,20 @@ public class TypeCheckVisitor implements ASTVisitor
                 {
                     throw new TypeCheckException(Parser.getErrorMessage(
                         op,
-                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES,
+                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD,
                         Kind.LT, Kind.GT, Kind.LE, Kind.GE
                     ));
                 }
             }
             else if(
-                (e0.getTypeName() == TypeName.INTEGER && e1.getTypeName() == TypeName.IMAGE) ||
-                    (e0.getTypeName() == TypeName.IMAGE && e1.getTypeName() == TypeName.INTEGER)
+                (e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.IMAGE) ||
+                    (e0.getType() == TypeName.IMAGE && e1.getType() == TypeName.INTEGER)
                 )
             {
                 binaryExpression.setTypeName(TypeName.IMAGE);
 
             }
-            else if( e0.getTypeName() == TypeName.IMAGE && e1.getTypeName() == TypeName.IMAGE )
+            else if( e0.getType() == TypeName.IMAGE && e1.getType() == TypeName.IMAGE )
             {
                 if( op.isKind(Kind.PLUS, Kind.MINUS) )
                 {
@@ -321,9 +321,9 @@ public class TypeCheckVisitor implements ASTVisitor
                     ));
                 }
             }
-            else if( e0.getTypeName() == TypeName.BOOLEAN && e1.getTypeName() == TypeName.BOOLEAN )
+            else if( e0.getType() == TypeName.BOOLEAN && e1.getType() == TypeName.BOOLEAN )
             {
-                if( op.isKind(Kind.LT, Kind.GT, Kind.LE, Kind.GE) )
+                if( op.isKind(Kind.LT, Kind.GT, Kind.LE, Kind.GE, Kind.AND, Kind.OR) )
                 {
                     binaryExpression.setTypeName(TypeName.BOOLEAN);
                 }
@@ -331,7 +331,7 @@ public class TypeCheckVisitor implements ASTVisitor
                 {
                     throw new TypeCheckException(Parser.getErrorMessage(
                         op,
-                        Kind.LT, Kind.GT, Kind.LE, Kind.GE
+                        Kind.LT, Kind.GT, Kind.LE, Kind.GE, Kind.AND, Kind.OR
                     ));
                 }
             }
@@ -340,7 +340,7 @@ public class TypeCheckVisitor implements ASTVisitor
                 throw new TypeCheckException(String.format(
                     "%s: Type pairs (%s, %s) cannot be compared in %s",
                     binaryExpression.getFirstToken().getLinePos(),
-                    e0.getTypeName(), e1.getTypeName(),
+                    e0.getType(), e1.getType(),
                     op.errorString()
                 ));
             }
@@ -499,11 +499,11 @@ public class TypeCheckVisitor implements ASTVisitor
         _visitExpression(e, arg);
         visitBlock(ifStatement.getB(), arg);
 
-        if( e.getTypeName() != TypeName.BOOLEAN )
+        if( e.getType() != TypeName.BOOLEAN )
         {
             throw new TypeCheckException(getErrorMessage(
                 ifStatement,
-                e.getTypeName(),
+                e.getType(),
                 TypeName.BOOLEAN
             ));
         }
@@ -524,9 +524,9 @@ public class TypeCheckVisitor implements ASTVisitor
 
         _visitExpression(e, arg);
 
-        if( e.getTypeName() != TypeName.INTEGER )
+        if( e.getType() != TypeName.INTEGER )
         {
-            throw new TypeCheckException(getErrorMessage(e, e.getTypeName(), TypeName.INTEGER));
+            throw new TypeCheckException(getErrorMessage(e, e.getType(), TypeName.INTEGER));
         }
         return null;
     }
@@ -538,11 +538,11 @@ public class TypeCheckVisitor implements ASTVisitor
         _visitExpression(e, arg);
         visitBlock(whileStatement.getB(), arg);
 
-        if( e.getTypeName() != TypeName.BOOLEAN )
+        if( e.getType() != TypeName.BOOLEAN )
         {
             throw new TypeCheckException(getErrorMessage(
                 whileStatement,
-                e.getTypeName(),
+                e.getType(),
                 TypeName.BOOLEAN
             ));
         }
@@ -603,11 +603,11 @@ public class TypeCheckVisitor implements ASTVisitor
 
         TypeName decType = getTypeName(dec.getType());
 
-        if( decType != e.getTypeName() )
+        if( decType != e.getType() )
         {
             throw new TypeCheckException(getErrorMessage(
                 assignStatement,
-                e.getTypeName(),
+                e.getType(),
                 decType
             ));
         }
@@ -710,7 +710,7 @@ public class TypeCheckVisitor implements ASTVisitor
             _visitExpression(e, arg);
         }
 
-        List<TypeName> types = es.stream().map(Expression::getTypeName).distinct().collect(Collectors.toList());
+        List<TypeName> types = es.stream().map(Expression::getType).distinct().collect(Collectors.toList());
 
         if( types.size() == 1 )
         {

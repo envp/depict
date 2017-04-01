@@ -226,7 +226,7 @@ public class Scanner
             return String.format("%s(%s)", this.kind, this.getText());
         }
 
-        public String toString() { return this.errorString(); }
+        // public String toString() { return this.errorString(); }
 
         /**
          * Precondition: kind = Kind.INT_LIT, the text can be represented with a

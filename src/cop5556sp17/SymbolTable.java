@@ -81,6 +81,9 @@ public class SymbolTable
     {
         this.lexicalLevel += 1;
         this.currentScope = this.lexicalLevel;
+
+        // The next line is worth 1/32 points
+        this.scopeStack.push(new Pair<>(this.currentScope, null));
     }
 
 
