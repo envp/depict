@@ -8,6 +8,7 @@ public class ParamDec extends Dec
     public ParamDec(Token firstToken, Token ident)
     {
         super(firstToken, ident);
+        this.slot = -1;
     }
 
     @Override

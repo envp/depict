@@ -8,10 +8,21 @@ public class Dec extends ASTNode
 
     final Token ident;
     public Type.TypeName typeName;
+    public int slot;
 
     public Type.TypeName getTypeName()
     {
         return typeName;
+    }
+    
+    public int getSlot()
+    {
+        return this.slot;
+    }
+    
+    public void setSlot(int slot)
+    {
+        this.slot = slot;
     }
 
     public Dec(Token firstToken, Token ident)

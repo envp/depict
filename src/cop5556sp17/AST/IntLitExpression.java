@@ -6,6 +6,11 @@ public class IntLitExpression extends Expression
 {
 
     public final int value;
+    
+    public Integer getValue()
+    {
+        return value;
+    }
 
     public IntLitExpression(Token firstToken)
     {
