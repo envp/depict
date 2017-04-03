@@ -282,7 +282,7 @@ public class TypeCheckVisitor implements ASTVisitor
         {
             if( e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.INTEGER )
             {
-                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD) )
+                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD, Kind.AND, Kind.OR) )
                 {
                     binaryExpression.setTypeName(TypeName.INTEGER);
                 }
@@ -294,7 +294,7 @@ public class TypeCheckVisitor implements ASTVisitor
                 {
                     throw new TypeCheckException(Parser.getErrorMessage(
                         op,
-                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD,
+                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD, Kind.AND, Kind.OR,
                         Kind.LT, Kind.GT, Kind.LE, Kind.GE
                     ));
                 }

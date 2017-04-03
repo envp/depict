@@ -1,22 +1,27 @@
-
 package cop5556sp17;
 
 
 import cop5556sp17.AST.*;
 import org.junit.Test;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ACC_SUPER;
 
 
 public class CodeGenVisitorTest
 {
 
-    static final boolean doPrint = true;
+    static boolean doPrint = true;
 
     static void show(Object s)
     {
@@ -29,24 +34,20 @@ public class CodeGenVisitorTest
     boolean devel = false;
     boolean grade = true;
 
-    private static ASTNode doStuff(String source) throws Exception
+    private static String executeByteCode(byte[] bytecode, String name, String[] args)
+        throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException
     {
-        Scanner s = new Scanner(source);
-        s.scan();
-        Parser p = new Parser(s);
-        ASTNode program = p.parse();
-        TypeCheckVisitor v = new TypeCheckVisitor();
-        program.visit(v, null);
-        return program;
-    }
+        PrintStream oldStream = System.out;
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
-    private static void executeByteCode(byte[] bytecode, String name, String[] args)
-            throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException
-    {
-        // create command line argument array to initialize params, none in this
-        // case
+        System.setOut(new PrintStream(outContent));
+
         Runnable instance = CodeGenUtils.getInstance(name, bytecode, args);
         instance.run();
+
+        System.setOut(oldStream);
+
+        return outContent.toString();
     }
 
     private static void writeByteCodeToFile(String name, byte[] bytecode) throws IOException
@@ -58,6 +59,7 @@ public class CodeGenVisitorTest
         output.close();
         System.out.println("wrote classfile to " + classFileName);
     }
+
 
     /**
      * This class encapsulates the behaviour for mapping programs
@@ -81,11 +83,11 @@ public class CodeGenVisitorTest
          * Template for equivalent java source
          */
         private String progTemplate = "public class %1$s implements Runnable {\n"
-                + "   // Instance vars generated from List<ParamDec>\n" + "   %2$s\n" + "   // Constructor\n"
-                + "   public %1$s(String[] args) {\n" + "       // TODO: Initialize with values from args\n"
-                + "       %4$s\n" + "   }\n" + "   public static void main(String[] args) {\n"
-                + "       (new %1$s(args)).run();\n" + "   }\n"
-                + "   public void run() %3$s" + "}";
+            + "   // Instance vars generated from List<ParamDec>\n" + "   %2$s\n" + "   // Constructor\n"
+            + "   public %1$s(String[] args) {\n" + "       // TODO: Initialize with values from args\n"
+            + "       %4$s\n" + "   }\n" + "   public static void main(String[] args) {\n"
+            + "       (new %1$s(args)).run();\n" + "   }\n"
+            + "   public void run() %3$s" + "}";
 
         /**
          * Template for Dec & ParamDec
@@ -97,7 +99,7 @@ public class CodeGenVisitorTest
          * Generic block template
          */
         private String blockTemplate = "{\n" + "   // declaration list\n" + "   %1$s" + "   // statement list\n"
-                + "   %2$s" + "}\n";
+            + "   %2$s" + "}\n";
 
         /**
          * All statement templates
@@ -112,15 +114,14 @@ public class CodeGenVisitorTest
          * Generates equivalent java source for the given program. Poor man's
          * transpiler
          *
-         * @param program
-         *            Program to be transpiled to java
+         * @param program Program to be transpiled to java
          * @return Source string in pure glorious java
          */
         private String walkProgram(ASTNode program)
         {
-            String name = ((Program) program).getName();
-            List<ParamDec> pdecs = ((Program) program).getParams();
-            Block block = ((Program) program).getB();
+            String name = (( Program ) program).getName();
+            List<ParamDec> pdecs = (( Program ) program).getParams();
+            Block block = (( Program ) program).getB();
 
             return String.format(progTemplate, name, walkParams(pdecs), walkBlock(block), genCons(pdecs));
         }
@@ -134,18 +135,18 @@ public class CodeGenVisitorTest
                 {
                     case INTEGER:
                         sb.append(
-                                String.format(
-                                        "this.%s = Integer.parseInt(args[%d]);\n", p.getIdent().getText(),
-                                        paramDecs.indexOf(p)
-                                )
+                            String.format(
+                                "this.%s = Integer.parseInt(args[%d]);\n", p.getIdent().getText(),
+                                paramDecs.indexOf(p)
+                            )
                         );
                         break;
                     case BOOLEAN:
                         sb.append(
-                                String.format(
-                                        "this.%s = Boolean.parseBoolean(args[%d]);\n", p.getIdent().getText(),
-                                        paramDecs.indexOf(p)
-                                )
+                            String.format(
+                                "this.%s = Boolean.parseBoolean(args[%d]);\n", p.getIdent().getText(),
+                                paramDecs.indexOf(p)
+                            )
                         );
                         break;
                     // For now complex types will not be initialized
@@ -168,8 +169,7 @@ public class CodeGenVisitorTest
         /**
          * Generates java variable declarations given a list of ParamDecs
          *
-         * @param paramDecs
-         *            list of declarations to traverse
+         * @param paramDecs list of declarations to traverse
          * @return equivalent newline seperated java declarations
          */
         private String walkParams(List<ParamDec> paramDecs)
@@ -184,9 +184,9 @@ public class CodeGenVisitorTest
             for( ParamDec paramDec : paramDecs )
             {
                 sb.append(
-                        String.format(
-                                instanceDecTemplate, typeMap.get(paramDec.getTypeName()), paramDec.getIdent().getText()
-                        )
+                    String.format(
+                        instanceDecTemplate, typeMap.get(paramDec.getTypeName()), paramDec.getIdent().getText()
+                    )
                 );
             }
 
@@ -196,8 +196,7 @@ public class CodeGenVisitorTest
         /**
          * A healthy method. Walks a block for you. Everytime.
          *
-         * @param block
-         *            Block object to traverse
+         * @param block Block object to traverse
          * @return Java source for the block passed in
          */
         private String walkBlock(Block block)
@@ -211,8 +210,7 @@ public class CodeGenVisitorTest
         /**
          * Generates java variable declarations given a list of of Decs
          *
-         * @param decs
-         *            list of declarations to traverse
+         * @param decs list of declarations to traverse
          * @return equivalent newline seperated java declarations
          */
         private String walkDeclarations(List<Dec> decs)
@@ -235,8 +233,7 @@ public class CodeGenVisitorTest
         /**
          * Thou shalt walk
          *
-         * @param stmts
-         *            List of statements to traverse
+         * @param stmts List of statements to traverse
          * @return Java source representation of the statements
          */
         private String walkStatements(List<Statement> stmts)
@@ -253,28 +250,28 @@ public class CodeGenVisitorTest
                 if( stmt instanceof IfStatement )
                 {
                     sb.append(
-                            String.format(
-                                    ifStmtTemplate, walkExpression(((IfStatement) stmt).getE()),
-                                    walkBlock(((IfStatement) stmt).getB())
-                            )
+                        String.format(
+                            ifStmtTemplate, walkExpression((( IfStatement ) stmt).getE()),
+                            walkBlock((( IfStatement ) stmt).getB())
+                        )
                     );
                 }
                 else if( stmt instanceof WhileStatement )
                 {
                     sb.append(
-                            String.format(
-                                    whileStmtTemplate, walkExpression(((WhileStatement) stmt).getE()),
-                                    walkBlock(((WhileStatement) stmt).getB())
-                            )
+                        String.format(
+                            whileStmtTemplate, walkExpression((( WhileStatement ) stmt).getE()),
+                            walkBlock((( WhileStatement ) stmt).getB())
+                        )
                     );
                 }
                 else if( stmt instanceof AssignmentStatement )
                 {
                     sb.append(
-                            String.format(
-                                    assignStmtTemplate, ((AssignmentStatement) stmt).getVar().getText(),
-                                    walkExpression(((AssignmentStatement) stmt).getE())
-                            )
+                        String.format(
+                            assignStmtTemplate, (( AssignmentStatement ) stmt).getVar().getText(),
+                            walkExpression((( AssignmentStatement ) stmt).getE())
+                        )
                     );
                 }
                 // TODO: Handle sleep statments (InterruptedException in calling
@@ -288,8 +285,7 @@ public class CodeGenVisitorTest
         /**
          * Walks an expression recursively to generate a string representation
          *
-         * @param e
-         *            Expression to traverse
+         * @param e Expression to traverse
          * @return Expression represented as a string in infix notation
          */
         private String walkExpression(Expression e)
@@ -312,9 +308,9 @@ public class CodeGenVisitorTest
             }
             else if( e instanceof BinaryExpression )
             {
-                Expression left = ((BinaryExpression) e).getE0();
-                Expression right = ((BinaryExpression) e).getE1();
-                Scanner.Token op = ((BinaryExpression) e).getOp();
+                Expression left = (( BinaryExpression ) e).getE0();
+                Expression right = (( BinaryExpression ) e).getE1();
+                Scanner.Token op = (( BinaryExpression ) e).getOp();
 
                 return "(" + walkExpression(left) + " " + op.getText() + " " + walkExpression(right) + ")";
             }
@@ -348,290 +344,265 @@ public class CodeGenVisitorTest
         }
     }
 
-    @Test
-    public void testEmptyProgram() throws Exception
+    private class Gen
     {
-        String input = "emptyProgram {}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
+        private String prog(String name, String paramDec, String block)
+        {
+            return (name + " " + paramDec + block);
+        }
 
-        // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
-        CodeGenUtils.dumpBytecode(bytecode);
-        // show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJavaCodeFile(jt);
-        
-        show("");
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
-        
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        show("");
-        show("========== EXECUTION ============");
-        show("");
-
-        // directly execute bytecode
-        // no cli args this time
-        CodeGenVisitorTest.executeByteCode(bytecode, name, new String[0]);
-    }
-    
-
-    @Test
-    public void testEmptyProgramWithParams() throws Exception
-    {
-        String input = "emptyProgramWithParams " + "integer i0," + "boolean b0," + "integer i1," + "boolean b1,"
-                + "boolean b2," + "integer i2," + "boolean b3" + "{}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
-
-        // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
-        CodeGenUtils.dumpBytecode(bytecode);
-        // show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJtavaCodeFile(jt);
-        show("");
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
-
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-
-        show("");
-        show("========== EXECUTION ============");
-        show("");
-
-        // directly execute bytecode
-        String[] args = { "10", "true", "12", "false", "false", "151161", "true" };
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        private String block(String... statements)
+        {
+            StringBuffer result = new StringBuffer("{");
+            for( String statement : statements )
+            {
+                result.append(statement + "\n");
+            }
+            result.append("}");
+            return result.toString();
+        }
     }
 
-    
-    @Test
-    public void testWithPBDecsNoStatement() throws Exception
+    private byte[] test(String source, String expOut, String[] args, boolean verbose) throws Exception
     {
-        String input = "prog integer i, boolean b, integer i2, boolean b2 {\n\tinteger ii\n\tboolean bb\n}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
+        boolean oldDoPrint = doPrint;
+        doPrint = verbose;
+        TypeCheckVisitor typechecker = new TypeCheckVisitor();
+        CodeGenVisitor codegen = new CodeGenVisitor(devel, grade, null);
+
+        Scanner scanner = new Scanner(source);
+        scanner.scan();
+
+        Parser parser = new Parser(scanner);
+        ASTNode program = parser.parse();
+        JavaTranslator jt = new JavaTranslator(program);
+
+        // Type-check
+        program.visit(typechecker, null);
+
+        // Generate code
+        byte[] bytecode = ( byte[] ) program.visit(codegen, null);
 
         // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
+        show("\n========== BYTECODE ==============\n");
+
         CodeGenUtils.dumpBytecode(bytecode);
-        // show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJtavaCodeFile(jt);
-        show("");
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
+
+        show("\n========== JAVA SOURCE ===========\n");
+        show(jt.translate());
+
+        show("\n========== SOURCE ================\n");
+        show(source);
 
         // write byte code to file
-        String name = p.getName();
+        String name = (( Program ) program).getName();
+
         CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
 
-        show("");
-        show("========== EXECUTION ============");
-        show("");
+        show("\n========== EXECUTION ============\n");
 
-        // directly execute bytecode
-        String[] args = { "10", "true", "12", "false"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        String output = CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+
+        if( expOut != null )
+        {
+            assertEquals(expOut, output);
+        }
+
+        // Restore old global print state
+        doPrint = oldDoPrint;
+
+        return bytecode;
     }
-    
 
-    @Test
-    public void testPWithAssignmentStatementAndExpressions() throws Exception
+    private ClassNode analyse(byte[] klass)
     {
-        String input = "prog integer gint0, boolean gbul0, integer gint1, boolean gbul1 {\n" + 
-                "\tinteger lint0\n" +
-                "\tinteger lint1\n" + 
-                "\tboolean lbul0\n" +
-                "\tboolean lbul1\n" +
-                "\tlint0 <- 66;\n" + 
-                "\tgint0 <- 32;\n" + 
-                "\tlbul0 <- false;\n" + 
-                "\tgbul0 <- lint0 < gint0;\n" +
-                "\tlbul1 <- lint0 > gint0;\n" +
-                "\tlbul1 <- lint0 <= gint0;\n" +
-                "\tlbul1 <- lint0 >= gint0;\n" +
-                "\tlbul1 <- true < true;\n" +
-                "\tlbul1 <- true < false;\n" +
-                "\tlbul1 <- false < true;\n" +
-                "\tlbul1 <- false < false;\n" +
-                "\tlbul1 <- false > false;\n" +
-                "\tlbul1 <- false > true;\n" +
-                "\tlbul1 <- true > false;\n" +
-                "\tlbul1 <- true > true;\n" +
-                "\tgbul0 <- true == true;\n" +
-                "\tgbul0 <- true == false;\n" +
-                "\tgbul0 <- false == true;\n" +
-                "\tgbul0 <- false == false;\n" +
-                "\tgbul0 <- false != false;\n" +
-                "\tgbul0 <- false != true;\n" +
-                "\tgbul0 <- true != false;\n" +
-                "\tgbul0 <- true != true;\n" + 
-                "\tgbul0 <- lint0 != gint0;\n" +
-                "\tgbul0 <- lint0 != lint0;\n" + 
-                "\tgbul0 <- gint0 != lint0;\n" + 
-                "\tgbul0 <- gint0 != gint0;\n" +
-                "\tgbul0 <- lint0 != gint0;\n" +
-                "\tgbul0 <- lint0 != lint0;\n" + 
-                "\tgbul0 <- gint0 != lint0;\n" + 
-                "\tgbul0 <- gint0 != gint0;\n" + 
-                "\tlint1 <- lint0 + gint0;\n" +
-                "\tlint1 <- gint0 - lint0;\n" +
-                "\tlint1 <- lint0 * gint0;\n" +
-                "\tlint1 <- lint0 / gint0;\n" +
-                "\tlint1 <- (lint0*lint0 + gint0*gint0 - 2*lint0*gint0) / 4;" + 
-                "\n}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
-
-        // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
-        CodeGenUtils.dumpBytecode(bytecode);
-        show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJtavaCodeFile(jt);
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-
-        show("");
-        show("========== EXECUTION ============");
-        show("");
-
-        // directly execute bytecode
-        String[] args = { "151161", "true", "12", "false" };
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        ClassReader classReader = new ClassReader(klass);
+        ClassNode classNode = new ClassNode();
+        classReader.accept(classNode, 0);
+        return classNode;
     }
-    
-    @Test
-    public void testPWitIfStatement() throws Exception
+
+    private static void testClassMetaData(ClassNode classNode, String progName, int nFields)
     {
-        String input = "prog integer gint0, boolean gbul0, integer gint1, boolean gbul1 {\n" + 
-                "\tinteger lint0\n" +
-                "\tinteger lint1\n" + 
-                "\tboolean lbul0\n" +
-                "\tboolean lbul1\n" +
-                "\tlint0 <- 66;\n" + 
-                "\tgint0 <- 32;\n" + 
-                "\tlbul0 <- false;\n" + 
-                "\tgbul0 <- lint0 < gint0;\n" +
-                "\tif(gbul0 != true) {\n" +
-                "\t\tlint1 <- lint0 - gint0;" + 
-                "\n\t}" +
-                "\n" +
-                "\tif(gbul0 == false | lbul0) {\n" +
-                "\t\tlint1 <- gint0 - lint0;}\n" +
-                "\n}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
+        // Fixed, so bundled into method
+        String superName = "java/lang/Object";
+        String[] methNames = {"<init>", "main", "run"};
+        String[] desc = {"([Ljava/lang/String;)V", "([Ljava/lang/String;)V", "()V"};
 
-        // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
-        CodeGenUtils.dumpBytecode(bytecode);
-        show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJtavaCodeFile(jt);
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
+//        mSignatures.putIfAbsent();
 
-        show("");
-        show("========== EXECUTION ============");
-        show("");
+        assertEquals(progName, classNode.name);
+        assertEquals(superName, classNode.superName);
+        assertEquals(ACC_PUBLIC | ACC_SUPER, classNode.access);
+        assertEquals(nFields, classNode.fields.size());
+        assertEquals(3, classNode.methods.size());
 
-        // directly execute bytecode
-        String[] args = { "151161", "true", "12", "false" };
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        for( int i = 0; i < classNode.methods.size(); i++ )
+        {
+            MethodNode m = ( MethodNode ) classNode.methods.get(i);
+            assertEquals(methNames[i], m.name);
+            assertEquals(desc[i], m.desc);
+        }
     }
 
     @Test
-    public void testPWithWhileStatement() throws Exception
+    public void testEmptyCompiles() throws Exception
     {
-        String input = "collatz integer val {\n" + 
-                "\tinteger cEven\n" +
-                "\tinteger cOdd\n" +
-                "\tinteger disc\n" +   
-                "\twhile(val != 1) {\n" +
-                "\t\tdisc <- val % 2;\n" +
-                "\t\tcEven <- val / 2;\n" +
-                "\t\tcOdd <- 3 * val + 1;\n" +
-                "\t\tval <- (1 - val % 2) * (val / 2) + (val % 2) * (3 * val + 1);\n" +
-                "\t}" +
-                "\n}";
-        Program p = (Program) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = (byte[]) p.visit(v, null);
+        String progName = "prog";
+        String input = (new Gen()).prog(progName, "", "{}");
 
-        // output the generated bytecode
-        show("");
-        show("========== BYTECODE ==============");
-        show("");
-        CodeGenUtils.dumpBytecode(bytecode);
-        // show("");
-        // show("========== JAVA SOURCE ===========");
-        // show("");
-        // show(jt.translate());
-        // writeJtavaCodeFile(jt);
-        show("");
-        show("========== SOURCE ===========");
-        show("");
-        show(input);
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
+        // Extract data from generated bytecode
+        ClassNode classNode = analyse(test(input, null, new String[0], false));
 
-        show("");
-        show("========== EXECUTION ============");
-        show("");
-
-        // directly execute bytecode
-        String[] args = {"9"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        testClassMetaData(classNode, progName, 0);
     }
+
+    @Test
+    public void testParamInitEmptyBlockCompiles() throws Exception
+    {
+        String progName = "prog";
+        String input = (new Gen()).prog(progName, "integer i0, boolean b0, file f1, url u1", "{}");
+        String[] args = {"10", "true", "abc.txt", "https://stackoverflow.com/"};
+
+        // Extract data from generated bytecode
+        ClassNode classNode = analyse(test(input, null, args, false));
+
+        testClassMetaData(classNode, progName, 4);
+    }
+
+    @Test
+    public void testParamInitBlockNoStmtCompiles() throws Exception
+    {
+        Gen gen = new Gen();
+        String progName = "prog";
+        String input = gen.prog(progName, "integer i, boolean b, file f, url u", "{}");
+        String[] args = {"10", "true", "abc.txt", "https://stackoverflow.com/"};
+
+        ClassNode classNode = analyse(test(input, null, args, false));
+        testClassMetaData(classNode, progName, 4);
+    }
+
+    @Test
+    public void testConstantAssignment() throws Exception
+    {
+        String progName = "prog";
+        String[] lvarnames = {"this", "x"};
+        Gen gen = new Gen();
+        String input = gen.prog(
+            progName,
+            "integer a, boolean b",
+            gen.block("integer x", "x <- 1;", "a <- 0;")
+        );
+        String[] args = {"12", "true"};
+        String expOut = "10";
+
+        ClassNode classNode = analyse(test(input, expOut, args, false));
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < runMethod.localVariables.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertEquals(lvarnames[i], lv.name);
+        }
+    }
+
+//    @Test
+//    public void testPWitIfStatement() throws Exception
+//    {
+//        String input = "prog integer gint0, boolean gbul0, integer gint1, boolean gbul1 {\n" +
+//            "\tinteger lint0\n" +
+//            "\tinteger lint1\n" +
+//            "\tboolean lbul0\n" +
+//            "\tboolean lbul1\n" +
+//            "\tlint0 <- 66;\n" +
+//            "\tgint0 <- 32;\n" +
+//            "\tlbul0 <- false;\n" +
+//            "\tgbul0 <- lint0 < gint0;\n" +
+//            "\tif(gbul0 != true) {\n" +
+//            "\t\tlint1 <- lint0 - gint0;" +
+//            "\n\t}" +
+//            "\n" +
+//            "\tif(gbul0 == false | lbul0) {\n" +
+//            "\t\tlint1 <- gint0 - lint0;}\n" +
+//            "\n}";
+//        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
+//        JavaTranslator jt = new JavaTranslator(p);
+//        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
+//        byte[] bytecode = ( byte[] ) p.visit(v, null);
+//
+//        // output the generated bytecode
+//        show("");
+//        show("========== BYTECODE ==============");
+//        show("");
+//        CodeGenUtils.dumpBytecode(bytecode);
+//        show("");
+//        // show("========== JAVA SOURCE ===========");
+//        // show("");
+//        // show(jt.translate());
+//        // writeJtavaCodeFile(jt);
+//        show("========== SOURCE ===========");
+//        show("");
+//        show(input);
+//        // write byte code to file
+//        String name = p.getName();
+//        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
+//
+//        show("");
+//        show("========== EXECUTION ============");
+//        show("");
+//
+//        // directly execute bytecode
+//        String[] args = {"151161", "true", "12", "false"};
+//        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+//    }
+//
+//    @Test
+//    public void testPWithWhileStatement() throws Exception
+//    {
+//        String input = "collatz integer val {\n" +
+//            "\tinteger cEven\n" +
+//            "\tinteger cOdd\n" +
+//            "\tinteger disc\n" +
+//            "\twhile(val != 1) {\n" +
+//            "\t\tdisc <- val % 2;\n" +
+//            "\t\tcEven <- val / 2;\n" +
+//            "\t\tcOdd <- 3 * val + 1;\n" +
+//            "\t\tval <- (1 - val % 2) * (val / 2) + (val % 2) * (3 * val + 1);\n" +
+//            "\t}" +
+//            "\n}";
+//        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
+//        JavaTranslator jt = new JavaTranslator(p);
+//        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
+//        byte[] bytecode = ( byte[] ) p.visit(v, null);
+//
+//        // output the generated bytecode
+//        show("");
+//        show("========== BYTECODE ==============");
+//        show("");
+//        CodeGenUtils.dumpBytecode(bytecode);
+//        // show("");
+//        // show("========== JAVA SOURCE ===========");
+//        // show("");
+//        // show(jt.translate());
+//        // writeJtavaCodeFile(jt);
+//        show("");
+//        show("========== SOURCE ===========");
+//        show("");
+//        show(input);
+//        // write byte code to file
+//        String name = p.getName();
+//        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
+//
+//        show("");
+//        show("========== EXECUTION ============");
+//        show("");
+//
+//        // directly execute bytecode
+//        String[] args = {"9"};
+//        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+//    }
 }

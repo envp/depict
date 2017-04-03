@@ -6,7 +6,7 @@ public class IdentExpression extends Expression
 {
     // Declaration of the identifier
     public Dec dec;
-    
+
     public Dec getDec()
     {
         return dec;

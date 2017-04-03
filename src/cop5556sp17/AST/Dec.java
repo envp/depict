@@ -14,12 +14,12 @@ public class Dec extends ASTNode
     {
         return typeName;
     }
-    
+
     public int getSlot()
     {
         return this.slot;
     }
-    
+
     public void setSlot(int slot)
     {
         this.slot = slot;

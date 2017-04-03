@@ -1,8 +1,8 @@
 package cop5556sp17.AST;
 
-import java.util.List;
-
 import cop5556sp17.Scanner.Token;
+
+import java.util.List;
 
 public class Tuple extends ASTNode
 {

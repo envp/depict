@@ -1,16 +1,13 @@
 package cop5556sp17;
 
-import java.util.Random;
-import java.lang.StringBuilder;
-
+import cop5556sp17.Parser.SyntaxException;
+import cop5556sp17.Scanner.IllegalCharException;
+import cop5556sp17.Scanner.IllegalNumberException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import cop5556sp17.Parser.SyntaxException;
-import cop5556sp17.Scanner.IllegalCharException;
-import cop5556sp17.Scanner.IllegalNumberException;
-import org.junit.runners.Suite;
+import java.util.Random;
 
 /**
  * @author Anurag Peshne
@@ -88,6 +85,7 @@ public class ParserTestExhaustive
         private static final String[] STRONG_OPS = {" * ", " / ", " & ", " % "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < StrongOpGenerator.STRONG_OPS.length )
@@ -100,6 +98,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < StrongOpGenerator.STRONG_OPS.length);
@@ -111,6 +110,7 @@ public class ParserTestExhaustive
         private static final String[] WEAK_OPS = {" + ", " - ", " | "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < WeakOpGenerator.WEAK_OPS.length )
@@ -123,6 +123,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < WeakOpGenerator.WEAK_OPS.length);
@@ -135,6 +136,7 @@ public class ParserTestExhaustive
             " != "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < RelOpGenerator.REL_OPS.length )
@@ -147,6 +149,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < RelOpGenerator.REL_OPS.length);
@@ -170,6 +173,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( index < FactorGenerator.FACTORS.length )
@@ -183,6 +187,7 @@ public class ParserTestExhaustive
             return new StringBuilder(FactorGenerator.FACTORS[ParserTestExhaustive.rnd.nextInt(6)]);
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < FactorGenerator.FACTORS.length ||
@@ -203,6 +208,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( facG != null && facG.hasNext() )
@@ -224,6 +230,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return facG != null && facG.hasNext();
@@ -244,6 +251,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( elemG != null && elemG.hasNext() )
@@ -265,6 +273,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return elemG != null && elemG.hasNext();
@@ -285,6 +294,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( termG != null && termG.hasNext() )
@@ -306,6 +316,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return termG != null && termG.hasNext();
@@ -329,6 +340,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( expG != null && expG.hasNext() )
@@ -348,6 +360,7 @@ public class ParserTestExhaustive
             return new StringBuilder(); // return epsilon
         }
 
+        @Override
         public Boolean hasNext()
         {
             return expG != null && expG.hasNext(); // I know, we can return epsilon, this is to make it finite
@@ -359,6 +372,7 @@ public class ParserTestExhaustive
         private static final String[] IMAGE_OPS = {" width ", " height ", " scale "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < ImageOpGenerator.IMAGE_OPS.length )
@@ -371,6 +385,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < ImageOpGenerator.IMAGE_OPS.length);
@@ -384,6 +399,7 @@ public class ParserTestExhaustive
             " xloc ", " yloc "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < FrameOpGenerator.FRAME_OPS.length )
@@ -396,6 +412,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < FrameOpGenerator.FRAME_OPS.length);
@@ -408,6 +425,7 @@ public class ParserTestExhaustive
         private static final String[] FILTER_OPS = {" blur ", " gray ", " convolve "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < FilterOpGenerator.FILTER_OPS.length )
@@ -420,6 +438,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < FilterOpGenerator.FILTER_OPS.length);
@@ -446,6 +465,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = null;
@@ -510,6 +530,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return filG != null && framG != null && imageG != null && (index < 4); // 4 cases in switch case
@@ -521,6 +542,7 @@ public class ParserTestExhaustive
         private static final String[] ARROW_OPS = {" -> ", " |-> "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < ArrowOpGenerator.ARROW_OPS.length )
@@ -533,6 +555,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < ArrowOpGenerator.ARROW_OPS.length);
@@ -553,6 +576,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder(" if ( ");
@@ -575,6 +599,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return expG != null && expG.hasNext();
@@ -595,6 +620,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder(" while ( ");
@@ -617,6 +643,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return expG != null && expG.hasNext();
@@ -637,6 +664,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             if( chainElemG != null && chainElemG.hasNext() )
@@ -675,6 +703,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return chainElemG != null && chainElemG.hasNext();
@@ -693,6 +722,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder(" dummyIdent ");
@@ -708,6 +738,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return expG != null && expG.hasNext();
@@ -740,6 +771,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder();
@@ -806,6 +838,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < 5);
@@ -817,6 +850,7 @@ public class ParserTestExhaustive
         private static final String[] DEC = {" integer ", " boolean ", " image ", " frame "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < DecGenerator.DEC.length )
@@ -830,6 +864,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < DecGenerator.DEC.length);
@@ -856,6 +891,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder("{\n");
@@ -879,6 +915,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (decG != null || statG != null);
@@ -891,6 +928,7 @@ public class ParserTestExhaustive
         private static final String[] PARAM_DEC = {" url ", " file ", " integer ", " boolean "};
         private int index = 0;
 
+        @Override
         public StringBuilder next()
         {
             if( index < ParamDecGenerator.PARAM_DEC.length )
@@ -904,6 +942,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < ParamDecGenerator.PARAM_DEC.length);
@@ -931,6 +970,7 @@ public class ParserTestExhaustive
             }
         }
 
+        @Override
         public StringBuilder next()
         {
             StringBuilder result = new StringBuilder(" ident /*random ident*/ ");
@@ -968,6 +1008,7 @@ public class ParserTestExhaustive
             return result;
         }
 
+        @Override
         public Boolean hasNext()
         {
             return (index < 2 && !blockG.hasNext());
