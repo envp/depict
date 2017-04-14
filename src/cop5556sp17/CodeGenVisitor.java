@@ -2,7 +2,9 @@ package cop5556sp17;
 
 
 import cop5556sp17.AST.*;
+import cop5556sp17.AST.Type;
 import cop5556sp17.AST.Type.TypeName;
+import cop5556sp17.Scanner.Kind;
 import cop5556sp17.Scanner.Token;
 import org.objectweb.asm.*;
 
@@ -311,6 +313,11 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
                     startLabels.add(new Pair<Dec, Label>(as.getVar().getDec(), start));
                 }
             }
+            else if( stmt instanceof BinaryChain)
+            {
+                // Pop value left over from binary chain on the stack
+                mv.visitInsn(POP);
+            }
         }
         // End of scope
         Label blockEnd = new Label();
@@ -333,7 +340,19 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
             )
         );
 
-        declaration.setSlot((( Integer ) arg).intValue());
+        int slot = (( Integer ) arg).intValue();
+        declaration.setSlot(slot);
+        
+        // Set frame and image to null by default
+        switch(declaration.getTypeName())
+        {
+            case IMAGE:
+            case FRAME:
+                mv.visitInsn(ACONST_NULL);
+                mv.visitIntInsn(ASTORE, slot);
+                break;
+        }
+        
         return null;
     }
 
@@ -377,7 +396,16 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
     @Override
     public Object visitConstantExpression(ConstantExpression constantExpression, Object arg)
     {
-        assert false : "not yet implemented";
+        Scanner.Token token = constantExpression.firstToken;
+        
+        if(token.isKind(Kind.KW_SCREENWIDTH))
+        {
+            mv.visitMethodInsn(INVOKESTATIC, PLPRuntimeFrame.JVMClassName, "getScreenWidth", PLPRuntimeFrame.getScreenWidthSig, false);
+        }
+        else if(token.isKind(Kind.KW_SCREENHEIGHT))
+        {
+            mv.visitMethodInsn(INVOKESTATIC, PLPRuntimeFrame.JVMClassName, "getScreenHeight", PLPRuntimeFrame.getScreenHeightSig, false);
+        }
         return null;
     }
 
@@ -400,7 +428,21 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
         {
 
             // Bound to be local at this point
-            mv.visitVarInsn(ISTORE, declaration.getSlot());
+            Type.TypeName type = declaration.getTypeName();
+            
+            switch(type)
+            {
+                case INTEGER:
+                case BOOLEAN:
+                    mv.visitVarInsn(ISTORE, declaration.getSlot());
+                    break;
+                case FRAME:
+                    // TODO: Find out if it is possible to assign a frame
+                    break;
+                case IMAGE:
+                    // TODO: Find out if it is possible to assign an image
+                    break;
+            }
         }
         return null;
     }
@@ -702,7 +744,23 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
     @Override
     public Object visitSleepStatement(SleepStatement sleepStatement, Object arg) throws Exception
     {
-        assert false : "not yet implemented";
+        Expression e = sleepStatement.getE();
+//        Label start = new Label();
+//        Label end = new Label();
+//        Label handler = new Label();
+//        mv.visitTryCatchBlock(start, end, handler, "java/lang/InterruptedException");
+        
+        // Handling code
+        // Literally nothing
+//        mv.visitLabel(start);
+
+        // Evaludate expression and push to stack
+        e.visit(this, arg);
+        // Convert op to long
+        mv.visitInsn(I2L);
+        // Sleep
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Thread", "sleep", "(J)V", false);
+//        mv.visitLabel(end);
         return null;
     }
 
@@ -723,7 +781,25 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
     @Override
     public Object visitFrameOpChain(FrameOpChain frameOpChain, Object arg) throws Exception
     {
-        assert false : "not yet implemented";
+        Tuple tuple = frameOpChain.getArg();
+        Scanner.Token tok = frameOpChain.getFirstToken();
+        
+        tuple.visit(this, arg);
+        
+        switch(tok.kind)
+        {
+            case KW_SHOW:
+                
+                break;
+            case KW_HIDE:
+                break;
+            case KW_MOVE:
+                break;
+            case KW_XLOC:
+                break;
+            case KW_YLOC:
+                break;
+        }
         return null;
     }
 
@@ -737,14 +813,34 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
     @Override
     public Object visitImageOpChain(ImageOpChain imageOpChain, Object arg) throws Exception
     {
-        assert false : "not yet implemented";
+        Tuple tuple = imageOpChain.getArg();
+        Scanner.Token tok = imageOpChain.getFirstToken();
+        
+        tuple.visit(this, arg);
+        
+        switch(tok.kind)
+        {
+            case OP_WIDTH:
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/BufferedImage", "getWidth", PLPRuntimeImageOps.getWidthSig, false);
+                break;
+            case OP_HEIGHT:
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/BufferedImage", "getHeight", PLPRuntimeImageOps.getHeightSig, false);
+                break;
+            case KW_SCALE:
+                mv.visitMethodInsn(INVOKESTATIC, PLPRuntimeImageOps.JVMName, "scale", PLPRuntimeImageOps.scaleSig, false);
+                break;
+        }
         return null;
     }
 
     @Override
     public Object visitTuple(Tuple tuple, Object arg) throws Exception
     {
-        assert false : "not yet implemented";
+        List<Expression> es = tuple.getExprList();
+        for(Expression e : es)
+        {
+            e.visit(this, arg);
+        }
         return null;
     }
 

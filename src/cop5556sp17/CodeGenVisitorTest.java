@@ -1,22 +1,33 @@
-
 package cop5556sp17;
 
 
 import cop5556sp17.AST.*;
+import jdk.internal.org.objectweb.asm.ClassReader;
+import jdk.internal.org.objectweb.asm.tree.*;
+import jdk.internal.org.objectweb.asm.util.Printer;
+import jdk.internal.org.objectweb.asm.util.Textifier;
+import jdk.internal.org.objectweb.asm.util.TraceMethodVisitor;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.awt.Toolkit;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static jdk.internal.org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static jdk.internal.org.objectweb.asm.Opcodes.ACC_SUPER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 
 public class CodeGenVisitorTest
 {
 
-    static final boolean doPrint = true;
+    static boolean doPrint = true;
 
     static void show(Object s)
     {
@@ -29,24 +40,20 @@ public class CodeGenVisitorTest
     boolean devel = false;
     boolean grade = true;
 
-    private static ASTNode doStuff(String source) throws Exception
-    {
-        Scanner s = new Scanner(source);
-        s.scan();
-        Parser p = new Parser(s);
-        ASTNode program = p.parse();
-        TypeCheckVisitor v = new TypeCheckVisitor();
-        program.visit(v, null);
-        return program;
-    }
-
-    private static void executeByteCode(byte[] bytecode, String name, String[] args)
+    private static String executeByteCode(byte[] bytecode, String name, String[] args)
         throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException
     {
-        // create command line argument array to initialize params, none in this
-        // case
+        PrintStream oldStream = System.out;
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+
+        System.setOut(new PrintStream(outContent));
+
         Runnable instance = CodeGenUtils.getInstance(name, bytecode, args);
         instance.run();
+
+        System.setOut(oldStream);
+
+        return PLPRuntimeLog.getString();
     }
 
     private static void writeByteCodeToFile(String name, byte[] bytecode) throws IOException
@@ -84,8 +91,7 @@ public class CodeGenVisitorTest
             + "   // Instance vars generated from List<ParamDec>\n" + "   %2$s\n" + "   // Constructor\n"
             + "   public %1$s(String[] args) {\n" + "       // TODO: Initialize with values from args\n"
             + "       %4$s\n" + "   }\n" + "   public static void main(String[] args) {\n"
-            + "       (new %1$s(args)).run();\n" + "   }\n"
-            + "   public void run() %3$s" + "}";
+            + "       (new %1$s(args)).run();\n" + "   }\n" + "   public void run() %3$s" + "}";
 
         /**
          * Template for Dec & ParamDec
@@ -342,183 +348,723 @@ public class CodeGenVisitorTest
         }
     }
 
-    @Test
-    public void testEmptyProgram() throws Exception
+    private class Gen
     {
-        String input = "emptyProgram {}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
+        private String prog(String name, String paramDec, String block)
+        {
+            return (name + " " + paramDec + block);
+        }
 
-        CodeGenUtils.dumpBytecode(bytecode);
-
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        CodeGenVisitorTest.executeByteCode(bytecode, name, new String[0]);
+        private String block(String... statements)
+        {
+            StringBuffer result = new StringBuffer("{");
+            for( String statement : statements )
+            {
+                result.append(statement + "\n");
+            }
+            result.append("}");
+            return result.toString();
+        }
     }
 
-
-    @Test
-    public void testEmptyProgramWithParams() throws Exception
+    private class ASTReconstructor
     {
-        String input = "emptyProgramWithParams " + "integer i0," + "boolean b0," + "integer i1," + "boolean b1,"
-            + "boolean b2," + "integer i2," + "boolean b3" + "{}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
+        private byte[] bytecode;
 
-        CodeGenUtils.dumpBytecode(bytecode);
+        public ASTReconstructor(byte[] klass)
+        {
+            this.bytecode = klass;
+        }
 
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        // directly execute bytecode
-        String[] args = {"10", "true", "12", "false", "false", "151161", "true"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        private String typeFromJVMTypeDesc(String desc)
+        {
+            for( Type.TypeName t : Type.TypeName.values() )
+            {
+                if( t.getJVMTypeDesc() != null && t.getJVMTypeDesc().equals(desc) )
+                {
+                    return t.toString().toLowerCase();
+                }
+            }
+            return null;
+        }
+
+        private void removePrintTOS(ArrayList<String> instructions)
+        {
+            // Scan for a contiguous sequence of statements that start with
+            // specific instructions
+            // and replace those with null
+            for( int i = 0; i < instructions.size() - 3; ++i )
+            {
+                if( instructions.get(i).startsWith("DUP") && instructions.get(i + 1).startsWith("GETSTATIC")
+                    && instructions.get(i + 2).startsWith("SWAP")
+                    && instructions.get(i + 3).startsWith("INVOKEVIRTUAL") )
+                {
+                    // ArrayList#remove's mutating behaviour, folks...
+                    instructions.remove(i);
+                    instructions.remove(i);
+                    instructions.remove(i);
+                    instructions.remove(i);
+                }
+            }
+
+        }
+
+        /**
+         * Scans for expressions greedily
+         *
+         * @param instructions op-codes to scan
+         * @return
+         */
+        private HashMap<Integer, String> replaceExpressionPatterns(ArrayList<String> instructions)
+        {
+            HashMap<Integer, String> map = new HashMap<>();
+
+            for( int i = 0; i < instructions.size(); ++i )
+            {
+                // assign to local var
+            }
+
+            return map;
+        }
+
+        public Program reconstruct()
+        {
+            ClassNode cl = analyse(this.bytecode);
+            Gen sourceGen = new Gen();
+            String progName = cl.name;
+            StringJoiner buf = new StringJoiner(",");
+
+            // Get paramdecs
+            for( FieldNode field : cl.fields )
+            {
+                buf.add(typeFromJVMTypeDesc(field.desc) + " " + field.name);
+            }
+
+            String paramDecs = buf.toString();
+
+            // Get block / run method
+            Printer printer = new Textifier();
+            TraceMethodVisitor runMethVisit = new TraceMethodVisitor(printer);
+            MethodNode runMeth = cl.methods.get(2);
+
+            System.out.println(runMeth.name);
+            InsnList instructions = runMeth.instructions;
+            ArrayList<String> instrs = new ArrayList<>();
+
+            for( int i = 0; i < instructions.size(); ++i )
+            {
+                instructions.get(i).accept(runMethVisit);
+                StringWriter sw = new StringWriter();
+                printer.print(new PrintWriter(sw));
+                printer.getText().clear();
+                instrs.add(sw.toString().trim());
+            }
+
+            System.out.println(Arrays.toString(instrs.toArray(new String[0])));
+
+            removePrintTOS(instrs);
+            replaceExpressionPatterns(instrs);
+
+            return null;
+        }
     }
 
-
-    @Test
-    public void testWithPBDecsNoStatement() throws Exception
+    private byte[] test(String source, String expOut, String[] args, boolean verbose) throws Exception
     {
-        String input = "prog integer i, boolean b, integer i2, boolean b2 {\n\tinteger ii\n\tboolean bb\n}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
+        boolean oldDoPrint = doPrint;
+        doPrint = verbose;
+        TypeCheckVisitor typechecker = new TypeCheckVisitor();
+        CodeGenVisitor codegen = new CodeGenVisitor(devel, grade, null);
+
+        Scanner scanner = new Scanner(source);
+        scanner.scan();
+
+        Parser parser = new Parser(scanner);
+        ASTNode program = parser.parse();
+        JavaTranslator jt = new JavaTranslator(program);
+
+        // Type-check
+        program.visit(typechecker, null);
+
+        // Generate code
+        byte[] bytecode = ( byte[] ) program.visit(codegen, null);
 
         // output the generated bytecode
+        show("\n========== BYTECODE ==============\n");
+
         CodeGenUtils.dumpBytecode(bytecode);
+
+        show("\n========== JAVA SOURCE ===========\n");
+        show(jt.translate());
+
+        show("\n========== SOURCE ================\n");
+        show(source);
+
         // write byte code to file
-        String name = p.getName();
+        String name = (( Program ) program).getName();
+
         CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        // directly execute bytecode
-        String[] args = {"10", "true", "12", "false"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+
+        show("\n========== EXECUTION ============\n");
+
+        String output = CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        
+        // Delete loggo
+        PLPRuntimeLog.resetLogToNull();
+
+        if( expOut != null )
+        {
+            assertEquals(expOut, output);
+        }
+
+        // Restore old global print state
+        doPrint = oldDoPrint;
+
+        return bytecode;
     }
 
-
-    @Test
-    public void testPWithAssignmentStatementAndExpressions() throws Exception
+    private ClassNode analyse(byte[] klass)
     {
-        String input = "prog integer gint0, boolean gbul0, integer gint1, boolean gbul1 {\n" +
-            "\tinteger lint0\n" +
-            "\tinteger lint1\n" +
-            "\tboolean lbul0\n" +
-            "\tboolean lbul1\n" +
-            "\tlint0 <- 66;\n" +
-            "\tgint0 <- 32;\n" +
-            "\tlbul0 <- false;\n" +
-            "\tgbul0 <- lint0 < gint0;\n" +
-            "\tlbul1 <- lint0 > gint0;\n" +
-            "\tlbul1 <- lint0 <= gint0;\n" +
-            "\tlbul1 <- lint0 >= gint0;\n" +
-            "\tlbul1 <- true < true;\n" +
-            "\tlbul1 <- true < false;\n" +
-            "\tlbul1 <- false < true;\n" +
-            "\tlbul1 <- false < false;\n" +
-            "\tlbul1 <- false > false;\n" +
-            "\tlbul1 <- false > true;\n" +
-            "\tlbul1 <- true > false;\n" +
-            "\tlbul1 <- true > true;\n" +
-            "\tgbul0 <- true == true;\n" +
-            "\tgbul0 <- true == false;\n" +
-            "\tgbul0 <- false == true;\n" +
-            "\tgbul0 <- false == false;\n" +
-            "\tgbul0 <- false != false;\n" +
-            "\tgbul0 <- false != true;\n" +
-            "\tgbul0 <- true != false;\n" +
-            "\tgbul0 <- true != true;\n" +
-            "\tgbul0 <- lint0 != gint0;\n" +
-            "\tgbul0 <- lint0 != lint0;\n" +
-            "\tgbul0 <- gint0 != lint0;\n" +
-            "\tgbul0 <- gint0 != gint0;\n" +
-            "\tgbul0 <- lint0 != gint0;\n" +
-            "\tgbul0 <- lint0 != lint0;\n" +
-            "\tgbul0 <- gint0 != lint0;\n" +
-            "\tgbul0 <- gint0 != gint0;\n" +
-            "\tlint1 <- lint0 + gint0;\n" +
-            "\tlint1 <- gint0 - lint0;\n" +
-            "\tlint1 <- lint0 * gint0;\n" +
-            "\tlint1 <- lint0 / gint0;\n" +
-            "\tlint1 <- (lint0*lint0 + gint0*gint0 - 2*lint0*gint0) / 4;" +
-            "\n}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
-
-        CodeGenUtils.dumpBytecode(bytecode);
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-
-        // directly execute bytecode
-        String[] args = {"151161", "true", "12", "false"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        ClassReader classReader = new ClassReader(klass);
+        ClassNode classNode = new ClassNode();
+        classReader.accept(classNode, 0);
+        return classNode;
     }
 
-    @Test
-    public void testPWitIfStatement() throws Exception
+    private static void testClassMetaData(ClassNode classNode, String progName, int nFields)
     {
-        String input = "prog integer gint0, boolean gbul0, integer gint1, boolean gbul1 {\n" +
-            "\tinteger lint0\n" +
-            "\tinteger lint1\n" +
-            "\tboolean lbul0\n" +
-            "\tboolean lbul1\n" +
-            "\tlint0 <- 66;\n" +
-            "\tgint0 <- 32;\n" +
-            "\tlbul0 <- false;\n" +
-            "\tgbul0 <- lint0 < gint0;\n" +
-            "\tif(gbul0 != true) {\n" +
-            "\t\tlint1 <- lint0 - gint0;" +
-            "\n\t}" +
-            "\n" +
-            "\tif(gbul0 == false | lbul0) {\n" +
-            "\t\tlint1 <- gint0 - lint0;}\n" +
-            "\n}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
+        // Fixed, so bundled into method
+        String superName = "java/lang/Object";
+        String[] methNames = {"<init>", "main", "run"};
+        String[] desc = {"([Ljava/lang/String;)V", "([Ljava/lang/String;)V", "()V"};
 
-        CodeGenUtils.dumpBytecode(bytecode);
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        // directly execute bytecode
-        String[] args = {"151161", "true", "12", "false"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        assertEquals(progName, classNode.name);
+        assertEquals(superName, classNode.superName);
+        assertEquals(ACC_PUBLIC | ACC_SUPER, classNode.access);
+        assertEquals(nFields, classNode.fields.size());
+        assertEquals(3, classNode.methods.size());
+
+        for( int i = 0; i < classNode.methods.size(); i++ )
+        {
+            MethodNode m = ( MethodNode ) classNode.methods.get(i);
+            assertEquals(methNames[i], m.name);
+            assertEquals(desc[i], m.desc);
+        }
+    }
+    
+    @Before
+    public void initLog()
+    {
+        if( devel || grade ) 
+        {
+            PLPRuntimeLog.initLog();
+        }
+    }
+    
+    @After
+    public void printLog()
+    {
+        System.out.println(PLPRuntimeLog.getString());
     }
 
     @Test
-    public void testPWithWhileStatement() throws Exception
+    public void testEmptyCompiles() throws Exception
     {
-        String input = "collatz integer val {\n" +
-            "\tinteger cEven\n" +
-            "\tinteger cOdd\n" +
-            "\tinteger disc\n" +
-            "\twhile(val != 1) {\n" +
-            "\t\tdisc <- val % 2;\n" +
-            "\t\tcEven <- val / 2;\n" +
-            "\t\tcOdd <- 3 * val + 1;\n" +
-            "\t\tval <- (1 - disc) * cEven + disc * cOdd;\n" +
-            "\t}" +
-            "\n}";
-        Program p = ( Program ) CodeGenVisitorTest.doStuff(input);
-        JavaTranslator jt = new JavaTranslator(p);
-        CodeGenVisitor v = new CodeGenVisitor(devel, grade, null);
-        byte[] bytecode = ( byte[] ) p.visit(v, null);
+        String progName = String.format("prog%d", new Date().getTime());
+        String input = (new Gen()).prog(progName, "", "{}");
 
-        CodeGenUtils.dumpBytecode(bytecode);
+        // test(input, null, new String[0], false);
+        // Extract data from generated bytecode
+        byte[] klass = test(input, null, new String[0], false);
+        ClassNode classNode = analyse(klass);
 
-        // write byte code to file
-        String name = p.getName();
-        CodeGenVisitorTest.writeByteCodeToFile(name, bytecode);
-        // directly execute bytecode
-        String[] args = {"9"};
-        CodeGenVisitorTest.executeByteCode(bytecode, name, args);
+        testClassMetaData(classNode, progName, 0);
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testParamInitEmptyBlockCompiles() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        String input = (new Gen()).prog(progName, "integer i0, boolean b0, file f1, url u1", "{}");
+        String[] args = {"10", "true", "abc.txt", "https://stackoverflow.com/"};
+        test(input, null, args, false);
+
+        // Extract data from generated bytecode
+        byte[] klass = test(input, null, args, false);
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 4);
+
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testParamInitBlockNoStmtCompiles() throws Exception
+    {
+        Gen gen = new Gen();
+        String progName = String.format("prog%d", new Date().getTime());
+        String input = gen.prog(progName, "integer i, boolean b, file f, url u", "{}");
+        String[] args = {"10", "true", "abc.txt", "https://stackoverflow.com/"};
+
+        test(input, null, args, false);
+
+        byte[] klass = test(input, null, args, false);
+        ClassNode classNode = analyse(klass);
+        testClassMetaData(classNode, progName, 4);
+
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testIntLitAssignment() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "x:I");
+        Gen gen = new Gen();
+        String input = gen.prog(progName, "integer a, boolean b", gen.block("integer x", "x <- 1;", "a <- 0;"));
+        String[] args = {"12", "true"};
+        String expOut = "10";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testIdentExpressionAssignment() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "x:I", "y:Z");
+
+        Gen gen = new Gen();
+        String input = gen.prog(
+            progName, "integer a, boolean b", gen.block("integer x boolean y", "x <- a;", "y <- b;")
+        );
+
+        String[] args = {"12", "true"};
+        String expOut = "12true";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testBoolExpressionAssignment() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "x:Z", "y:Z");
+
+        Gen gen = new Gen();
+        String input = gen.prog(
+            progName, "boolean a, boolean b", gen.block("boolean x boolean y", "x <- a;", "y <- b;")
+        );
+
+        String[] args = {"false", "true"};
+        String expOut = "falsetrue";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+
+    }
+
+    @Test
+    public void testBinaryExpressionAssignment() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName));
+
+        Gen gen = new Gen();
+        String input = gen.prog(
+            progName, "integer x, integer y",
+            gen.block("", "x <- x + 1 / 2 + 3 * 4;", "y <- y + 2 / 2 - 6 % 2;", "y <- x & y;", "y <- x | y;")
+        );
+
+        String[] args = {"0", "0"};
+        String expOut = "121012";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testIfSimple() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName));
+
+        Gen gen = new Gen();
+        String input = gen.prog(progName, "boolean x", gen.block("if(x)", gen.block("x <- false;")));
+
+        String[] args = {"true"};
+        String expOut = "false";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 1);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testLogic() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "lb0:Z", "lb1:Z");
+
+        Gen gen = new Gen();
+
+        String input = gen.prog(
+            progName, "boolean gb0, boolean gb1",
+            gen.block(
+                "boolean lb0 boolean lb1", 
+                "lb0 <- true == true;", 
+                "lb0 <- true == false;",
+                "lb0 <- false == true;", 
+                "lb0 <- false == false;",
+                
+                "lb0 <- true != true;",
+                "lb0 <- true != false;", 
+                "lb0 <- false != true;", 
+                "lb0 <- false != false;",
+                
+                "lb1 <- true > true;", 
+                "lb1 <- true > false;", 
+                "lb1 <- false > true;", 
+                "lb1 <- false > false;",
+                
+                "lb0 <- true < true;", 
+                "lb0 <- true < false;", 
+                "lb0 <- false < true;", 
+                "lb0 <- false < false;",
+                
+                "lb0 <- true >= true;", 
+                "lb0 <- true >= false;", 
+                "lb0 <- false >= true;", 
+                "lb0 <- false >= false;", 
+                
+                "lb1 <- true <= true;", 
+                "lb1 <- true <= false;", 
+                "lb1 <- false <= true;", 
+                "lb1 <- false <= false;"
+            )
+        );
+        String[] args = {"true", "false"};
+        String expOutShort = "tfft" + "fttf" + "ftff" + "fftf" + "ttft" + "tftt";
+        String expOut = Arrays.stream(expOutShort.split("")).map(c -> c.equals("t") ? "true" : "false")
+                              .collect(Collectors.joining(""));
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            System.out.println( (( LocalVariableNode ) runMethod.localVariables.get(i)).name + ":" +  (( LocalVariableNode ) runMethod.localVariables.get(i)).desc);
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testLoopingNestedBlocks() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName));
+
+        Gen gen = new Gen();
+
+        String input = gen.prog(
+            progName, "integer x", gen.block(
+                "while(x < 1000)", gen.block(
+                    "if (x % 2 == 0)", gen.block("x <- 2 * x + 1;"), "if (x % 2 == 1)",
+                    gen.block("x <- 2 * x;")
+                )
+            )
+        );
+        String[] args = {"0"};
+        String expOut = "1251021428517034168213652730";
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 1);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+
+    @Test
+    public void testLoopingNestedLoops() throws Exception
+    {
+        // Sum of all pairs of numbers
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "i:I", "j:I", "sum:I");
+
+        Gen gen = new Gen();
+
+        String input = gen.prog(
+            progName, "integer r, integer c",
+            gen.block(
+                "integer i integer j integer sum", "i <- 0;", "while(i < r)",
+                gen.block("j <- 0;", "while (j < c)", gen.block("sum <- i + j;", "j <- j + 1;"), "i <- i + 1;")
+            )
+        );
+        String[] args = {"2", "2"};
+        String expOut = "0";
+
+        for( int i = 0; i < Integer.parseInt(args[0]); ++i )
+        {
+            expOut += "0";
+            for( int j = 0; j < Integer.parseInt(args[1]); ++j )
+            {
+                expOut += Integer.valueOf(i + j).toString();
+                expOut += Integer.valueOf(j + 1).toString();
+            }
+            expOut += Integer.valueOf(i + 1).toString();
+        }
+
+        byte[] klass = test(input, expOut, args, false);
+
+        ClassNode classNode = analyse(klass);
+
+        testClassMetaData(classNode, progName, 2);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+    
+    @Test
+    public void testSleepStatementsSimple() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "a:I", "b:I");
+        long sleepDuration = 1000;
+        
+        Gen gen = new Gen();
+
+        String input = gen.prog(
+            progName,
+            "",
+            gen.block(
+                "integer a integer b",
+                "a <- 2;",
+                "sleep " + sleepDuration + ";",
+                "b <- 2;"
+            )
+        );
+
+        String[] args = {};
+        String expOut = "22";
+
+        long start = System.currentTimeMillis();
+        byte[] klass = test(input, expOut, args, false);
+        long fin = System.currentTimeMillis();
+        
+        System.out.println("Slept for:" + Long.valueOf(fin-start) + "ms");
+        
+        assertTrue("Error: Sleep delay = " + Long.valueOf(fin - start) + "ms", fin > start + sleepDuration);
+
+        ClassNode classNode = analyse(klass);
+        testClassMetaData(classNode, progName, 0);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+    
+    @Test
+    public void testSleepStatementsWithExpressions() throws Exception
+    {
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName));
+        long sleepDuration = 0;
+        
+        Gen gen = new Gen();
+        
+        while(sleepDuration < 1000)
+        {
+            if(sleepDuration % 2 == 0)
+            {
+                sleepDuration = 2 * sleepDuration + 1;
+            }
+            if(sleepDuration % 2 == 1)
+            {
+                sleepDuration = 2 * sleepDuration;
+            }
+        }
+        
+        sleepDuration = Math.floorDiv(
+            Math.floorDiv(sleepDuration, 2) + 
+            Math.floorDiv(sleepDuration, 3) + 
+            Math.floorDiv(sleepDuration, 4), 
+            2
+        );
+        String input = gen.prog(
+                progName, 
+                "integer x", 
+                gen.block(
+                    "while(x < 1000)", gen.block(
+                        "if (x % 2 == 0)", gen.block("x <- 2 * x + 1;"), 
+                        "if (x % 2 == 1)", gen.block("x <- 2 * x;")
+                    ),
+                    "sleep (x / 2 + x / 3 + x / 4) / 2;"
+                )
+            );
+
+        String[] args = {"0"};
+        String expOut = "1251021428517034168213652730";
+
+        long start = System.currentTimeMillis();
+        byte[] klass = test(input, expOut, args, false);
+        long fin = System.currentTimeMillis();
+        
+        System.out.println("Slept for:" + Long.valueOf(fin-start) + "ms");
+        
+        assertTrue("Error: Sleep delay = " + Long.valueOf(fin - start) + "ms", fin > start + sleepDuration);
+
+        ClassNode classNode = analyse(klass);
+        testClassMetaData(classNode, progName, 1);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
+    }
+    
+    @Test
+    public void testConstantExpression() throws Exception
+    {
+        int w = (int) java.awt.Toolkit.getDefaultToolkit().getScreenSize().getWidth();
+        int h = (int) java.awt.Toolkit.getDefaultToolkit().getScreenSize().getHeight();
+        
+        String progName = String.format("prog%d", new Date().getTime());
+        List<String> lvars = Arrays.asList(String.format("this:L%s;", progName), "w:I", "h:I"); 
+        
+        Gen gen = new Gen();
+        
+        String input = gen.prog(
+                progName, 
+                "",
+                gen.block(
+                    "integer w integer h",
+                    "w <- screenwidth;",
+                    "h <- screenheight;"
+                )
+            );
+
+        String[] args = {"0"};
+        String expOut = "getScreenWidth" + w + "getScreenHeight" + h;
+
+        byte[] klass = test(input, expOut, args, false);       
+
+        ClassNode classNode = analyse(klass);
+        testClassMetaData(classNode, progName, 0);
+
+        // Additional assertions about program structure
+        MethodNode runMethod = ( MethodNode ) classNode.methods.get(2);
+
+        for( int i = 0; i < lvars.size(); ++i )
+        {
+            LocalVariableNode lv = ( LocalVariableNode ) runMethod.localVariables.get(i);
+            assertTrue(lvars.contains(lv.name + ":" + lv.desc));
+        }
+        (new ASTReconstructor(klass)).reconstruct();
     }
 }
+// http://cdn.inquisitr.com/wp-content/uploads/2016/09/Pepe-the-frog-redrawn-670x670.jpg
