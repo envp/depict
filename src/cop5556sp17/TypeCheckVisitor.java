@@ -200,7 +200,8 @@ public class TypeCheckVisitor implements ASTVisitor
                         ));
                     }
                 }
-                else if( chElem instanceof IdentChain )
+                // Modified in assignment 6
+                else if( chElem instanceof IdentChain && chElem.getTypeName() == TypeName.IMAGE )
                 {
                     binaryChain.setTypeName(TypeName.IMAGE);
                     return null;
@@ -239,6 +240,34 @@ public class TypeCheckVisitor implements ASTVisitor
                         chElem.getFirstToken().getLinePos()
                     ));
                 }
+            }
+            else
+            {
+                throw new TypeCheckException(String.format(
+                    "Expected operator ARROW(->) or BARARROW(|->) at %s, found %s",
+                    binaryChain.getFirstToken().getLinePos(),
+                    op
+                ));
+            }
+        }
+        // Added in assignment 6
+        else if( ch.getTypeName() == TypeName.INTEGER )
+        {
+            if( op.isKind(Kind.ARROW) )
+            {
+                if( chElem instanceof IdentChain && chElem.getTypeName() == TypeName.INTEGER )
+                {
+                    binaryChain.setTypeName(TypeName.INTEGER);
+                    return null;
+                }
+            }
+            else
+            {
+                throw new TypeCheckException(String.format(
+                    "Expected operator ARROW(->) at %s, found %s",
+                    binaryChain.getFirstToken().getLinePos(),
+                    op
+                ));
             }
         }
         else
@@ -282,7 +311,7 @@ public class TypeCheckVisitor implements ASTVisitor
         {
             if( e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.INTEGER )
             {
-                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD, Kind.AND, Kind.OR) )
+                if( op.isKind(Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD) )
                 {
                     binaryExpression.setTypeName(TypeName.INTEGER);
                 }
@@ -294,18 +323,39 @@ public class TypeCheckVisitor implements ASTVisitor
                 {
                     throw new TypeCheckException(Parser.getErrorMessage(
                         op,
-                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD, Kind.AND, Kind.OR,
+                        Kind.PLUS, Kind.MINUS, Kind.DIV, Kind.TIMES, Kind.MOD,
                         Kind.LT, Kind.GT, Kind.LE, Kind.GE
                     ));
                 }
             }
-            else if(
-                (e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.IMAGE) ||
-                    (e0.getType() == TypeName.IMAGE && e1.getType() == TypeName.INTEGER)
-                )
+            else if( e0.getType() == TypeName.IMAGE && e1.getType() == TypeName.INTEGER )
             {
-                binaryExpression.setTypeName(TypeName.IMAGE);
-
+                if( op.isKind(Kind.TIMES, Kind.DIV, Kind.MOD) )
+                {
+                    binaryExpression.setTypeName(TypeName.IMAGE);
+                }
+                else
+                {
+                    throw new TypeCheckException(Parser.getErrorMessage(
+                        op,
+                        Kind.DIV, Kind.TIMES, Kind.MOD
+                    ));
+                }
+            }
+            else if( e0.getType() == TypeName.INTEGER && e1.getType() == TypeName.IMAGE )
+            {
+                // Only commutative operations
+                if( op.isKind(Kind.TIMES) )
+                {
+                    binaryExpression.setTypeName(TypeName.IMAGE);
+                }
+                else
+                {
+                    throw new TypeCheckException(Parser.getErrorMessage(
+                        op,
+                        Kind.TIMES
+                    ));
+                }
             }
             else if( e0.getType() == TypeName.IMAGE && e1.getType() == TypeName.IMAGE )
             {
@@ -465,7 +515,7 @@ public class TypeCheckVisitor implements ASTVisitor
         }
 
         identChain.setTypeName(dec.getTypeName());
-
+        identChain.setDec(dec);
         return null;
     }
 
@@ -480,8 +530,8 @@ public class TypeCheckVisitor implements ASTVisitor
         {
             throw new TypeCheckException(String.format(
                 "Identifier %s used before declaration at %s",
-                dec.getIdent().errorString(),
-                dec.getFirstToken().getLinePos()
+                identExpression.getFirstToken().errorString(),
+                identExpression.getFirstToken().getLinePos()
             ));
         }
 

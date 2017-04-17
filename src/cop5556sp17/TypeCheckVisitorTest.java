@@ -547,7 +547,10 @@ public class TypeCheckVisitorTest
             "p boolean x, boolean y { x <- screenwidth; y <- x;}",
             "p boolean x, integer y { y <- screenheight; x <- y;}",
             "p boolean x, integer y { y <- screenheight; x <- y;}",
-            "p { integer x url y\nx <- y}"
+            "p { integer x url y\nx <- y}",
+            "p { integer x image i i <- x % i}",
+            "p { integer x image i i <- x / i}",
+            "p { integer x image i i <- x - i}"
         };
 
         for( String input : inputs )
