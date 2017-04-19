@@ -1,6 +1,5 @@
 package cop5556sp17;
 
-
 import cop5556sp17.AST.*;
 import cop5556sp17.AST.Type;
 import cop5556sp17.AST.Type.TypeName;
@@ -460,6 +459,8 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
             {
                 case INTEGER:
                 case BOOLEAN:
+                case FILE:
+                case URL:
                     mv.visitIntInsn(ALOAD, 0);
                     mv.visitFieldInsn(
                         GETFIELD, className, dec.getIdent().getText(), dec.getTypeName().getJVMTypeDesc()
@@ -478,6 +479,7 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
                     mv.visitVarInsn(ILOAD, identExpression.getDec().getSlot());
                     break;
                 case IMAGE:
+                case FRAME:
                     mv.visitVarInsn(ALOAD, identExpression.getDec().getSlot());
                 default:
                     break;
@@ -811,6 +813,40 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes
         }
 
         if( e0.getType() == TypeName.FILE && e1.getType() == TypeName.FILE )
+        {
+            switch( op.kind )
+            {
+                case EQUAL:
+                    // pop e1, e0
+                    // compare (if_icmple) not(e0 <= e1)
+                    Label fsE = new Label();
+                    Label guardE = new Label();
+                    mv.visitJumpInsn(IF_ACMPNE, guardE);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitJumpInsn(GOTO, fsE);
+                    mv.visitLabel(guardE);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitLabel(fsE);
+                    break;
+                case NOTEQUAL:
+                    // pop e1, e0
+                    // compare (if_icmple) not(e0 <= e1)
+                    Label fsNE = new Label();
+                    Label guardNE = new Label();
+                    mv.visitJumpInsn(IF_ACMPEQ, guardNE);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitJumpInsn(GOTO, fsNE);
+                    mv.visitLabel(guardNE);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitLabel(fsNE);
+                    break;
+                default:
+                    // This should've been caught during TypeChecking!
+                    break;
+            }
+        }
+
+        if( e0.getType() == TypeName.URL && e1.getType() == TypeName.URL )
         {
             switch( op.kind )
             {
